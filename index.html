@@ -349,13 +349,14 @@
         <h1>Dagang Jati T&amp;C Hub</h1>
         <div class="brand-sub">
           <span>🏗️ YNJDC 3.1 Data Centre • LV</span>
-          <span class="badge-live"><span class="dot"></span><span id="backendBadge">Standalone</span> • v3.2</span>
+          <span class="badge-live"><span class="dot"></span><span id="backendBadge">Standalone</span> • v3.3</span>
         </div>
       </div>
     </div>
     <div class="top-actions">
+      <button class="icon-btn" id="oneTapSyncBtn" onclick="oneTapSync()" title="Refresh / Sync latest data across all devices">🔄 Sync</button>
       <button class="icon-btn" onclick="exportProgressCsv()" title="Export LV Progress CSV">📊 CSV</button>
-      <button class="icon-btn admin-only" onclick="openSettingsModal()">⚙ Sync</button>
+      <button class="icon-btn admin-only" onclick="openSettingsModal()">⚙ Config</button>
       <button class="icon-btn" id="adminToggleBtn" onclick="handleAdminButton()">🔒 Team View</button>
     </div>
   </div>
@@ -388,7 +389,7 @@
   <div id="appRoot"></div>
 
   <div class="footer-note">
-    Dagang Jati Sdn. Bhd. • T&amp;C Department (LV Discipline) • Build v3.2 • Static GitHub Pages PWA
+    Dagang Jati Sdn. Bhd. • T&amp;C Department (LV Discipline) • Build v3.3 • Static GitHub Pages PWA
   </div>
 </main>
 
@@ -765,7 +766,7 @@ function sanitizeState(st) {
 }
 
 let state = sanitizeState(loadState());
-saveState();
+saveState(true);
 let cfg = loadCfg();
 let isAdmin = false;
 let currentSection = "DAY1";
@@ -788,9 +789,47 @@ function loadState() {
   } catch (e) {}
   return JSON.parse(JSON.stringify(SEED_DATA));
 }
-function saveState() {
+let hasUnsyncedAdminChanges = false;
+let autoSyncTimer = null;
+
+function saveState(skipCloud) {
   try { localStorage.setItem(STORE_KEY, JSON.stringify(state)); }
   catch (e) { toast("Browser storage full — use Cloud Sync or Export JSON"); }
+  if (!skipCloud && isAdmin) {
+    hasUnsyncedAdminChanges = true;
+    scheduleAutoCloudPush();
+  }
+}
+
+function scheduleAutoCloudPush() {
+  if (cfg.backend === "local") return;
+  clearTimeout(autoSyncTimer);
+  autoSyncTimer = setTimeout(() => {
+    if (isAdmin && hasUnsyncedAdminChanges) {
+      if (cfg.backend === "apps_script" && cfg.gasUrl) pushToAppsScript(true);
+      else if (cfg.backend === "firebase" && cfg.firebaseJson) pushToFirebase(true);
+    }
+  }, 2000);
+}
+
+async function oneTapSync() {
+  const btn = document.getElementById("oneTapSyncBtn");
+  if (cfg.backend === "local") {
+    return toast("Standalone mode — connect Google Cloud in ⚙ Config to sync across devices");
+  }
+  if (btn) btn.textContent = "⏳ Syncing...";
+  try {
+    if (isAdmin && hasUnsyncedAdminChanges) {
+      if (cfg.backend === "apps_script" && cfg.gasUrl) await pushToAppsScript(false);
+      else if (cfg.backend === "firebase" && cfg.firebaseJson) await pushToFirebase(false);
+      hasUnsyncedAdminChanges = false;
+    } else {
+      if (cfg.backend === "apps_script" && cfg.gasUrl) await syncFromAppsScript(false);
+      else if (cfg.backend === "firebase" && cfg.firebaseJson) await testFirebaseSync(false);
+    }
+  } finally {
+    if (btn) btn.textContent = "🔄 Sync";
+  }
 }
 function loadCfg() {
   try {
@@ -1771,7 +1810,7 @@ async function syncFromAppsScript(silent) {
     if (data.panels) state.panels = data.panels;
     if (data.rfis) state.rfis = data.rfis;
     sanitizeState(state);
-    saveState();
+    saveState(true);
     render();
     const el = document.getElementById("syncLatency");
     if (el) el.textContent = `Cloud pull: ${ms} ms`;
@@ -1779,7 +1818,7 @@ async function syncFromAppsScript(silent) {
   } catch (e) { if (!silent) toast("Sync error: " + e.message); }
 }
 
-async function pushToAppsScript() {
+async function pushToAppsScript(silent) {
   const url = document.getElementById("cfgGasUrl").value.trim() || cfg.gasUrl;
   if (!url) return toast("Paste your Apps Script Web App URL first");
   const t0 = performance.now();
@@ -1789,7 +1828,7 @@ async function pushToAppsScript() {
     const ms = Math.round(performance.now() - t0);
     if (data.error) throw new Error(data.error);
     document.getElementById("syncLatency").textContent = `Cloud push: ${ms} ms`;
-    toast(`Pushed to Cloud (${ms}ms)`);
+    hasUnsyncedAdminChanges = false; if (!silent) toast(`Synced to all devices (${ms}ms)`);
   } catch (e) { toast("Push failed: " + e.message); }
 }
 
@@ -1805,7 +1844,7 @@ async function testFirebaseSync(silent) {
     const ms = Math.round(performance.now() - t0);
     if (data.fields && data.fields.payload && data.fields.payload.stringValue) {
       state = sanitizeState(JSON.parse(data.fields.payload.stringValue));
-      saveState();
+      saveState(true);
       render();
       const el = document.getElementById("syncLatency");
       if (el) el.textContent = `Firebase pull: ${ms} ms`;
@@ -1816,7 +1855,7 @@ async function testFirebaseSync(silent) {
   } catch (e) { if (!silent) toast("Firebase error: " + e.message); }
 }
 
-async function pushToFirebase() {
+async function pushToFirebase(silent) {
   const raw = document.getElementById("cfgFirebaseJson").value.trim() || cfg.firebaseJson;
   if (!raw) return toast("Paste Firebase Web Config JSON first");
   try {
@@ -1831,7 +1870,7 @@ async function pushToFirebase() {
     if (!res.ok) throw new Error("HTTP " + res.status);
     const ms = Math.round(performance.now() - t0);
     document.getElementById("syncLatency").textContent = `Firebase push: ${ms} ms`;
-    toast(`Pushed to Firebase (${ms}ms)`);
+    hasUnsyncedAdminChanges = false; if (!silent) toast(`Synced to Firebase (${ms}ms)`);
   } catch (e) { toast("Firebase push error: " + e.message); }
 }
 
