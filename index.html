@@ -8,32 +8,32 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <meta name="theme-color" content="#0A192F" />
+  <meta name="theme-color" content="#14171A" />
   <title>Dagang Jati T&amp;C Hub — JDC LV 3.1</title>
   <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
   <style>
     :root {
-      --navy: #0A192F;
-      --navy-2: #112240;
-      --cyan: #0284C7;
-      --cyan-soft: #E0F2FE;
+      --navy: #14171A;
+      --navy-2: #1E2329;
+      --cyan: #B45309;          /* Corporate Engineering Bronze/Gold accent */
+      --cyan-soft: #FEF3C7;
       --emerald: #059669;
       --emerald-soft: #D1FAE5;
-      --emerald-card: linear-gradient(135deg, #ECFDF5 0%, #D1FAE5 100%);
+      --emerald-card: linear-gradient(135deg, #F0FDF4 0%, #DCFCE7 100%);
       --amber: #D97706;
       --amber-soft: #FEF3C7;
-      --purple: #7C3AED;
-      --purple-soft: #EDE9FE;
+      --purple: #4B5563;
+      --purple-soft: #F3F4F6;
       --rose: #DC2626;
       --rose-soft: #FEE2E2;
-      --slate-50: #F4F7FB;
-      --slate-100: #EEF2F7;
-      --slate-200: #DCE3EC;
-      --slate-400: #94A3B8;
-      --slate-600: #475569;
-      --slate-800: #1E293B;
+      --slate-50: #F8F9FA;
+      --slate-100: #F1F3F5;
+      --slate-200: #E2E6EA;
+      --slate-400: #868E96;
+      --slate-600: #495057;
+      --slate-800: #212529;
       --radius: 14px;
-      --shadow: 0 3px 12px rgba(10, 25, 47, 0.07);
+      --shadow: 0 2px 10px rgba(20, 23, 26, 0.05);
     }
     * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
     body {
@@ -41,113 +41,88 @@
       font-family: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", Roboto, sans-serif;
       color: var(--slate-800);
       padding-bottom: 84px;
-      /* Data Centre & Engineering Blueprint Grid Background */
-      background-color: #EFF4FA;
-      background-image:
-        radial-gradient(circle at 15% 15%, rgba(2, 132, 199, 0.07) 0%, transparent 40%),
-        radial-gradient(circle at 85% 80%, rgba(5, 150, 105, 0.06) 0%, transparent 45%),
-        linear-gradient(rgba(10, 25, 47, 0.035) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(10, 25, 47, 0.035) 1px, transparent 1px);
-      background-size: 100% 100%, 100% 100%, 28px 28px, 28px 28px;
-      background-attachment: fixed;
+      background-color: #F4F5F7;
     }
 
-    /* Industrial Data Centre Topbar */
+    /* Sleek Executive Topbar — Zero Overlap on Mobile */
     .topbar {
       position: sticky; top: 0; z-index: 40;
-      background:
-        linear-gradient(135deg, rgba(10,25,47,0.97) 0%, rgba(17,34,64,0.95) 60%, rgba(12,74,110,0.94) 100%),
-        repeating-linear-gradient(90deg, rgba(56,189,248,0.06) 0px, rgba(56,189,248,0.06) 1px, transparent 1px, transparent 24px);
-      color: #fff; padding: 11px 16px;
-      border-bottom: 2px solid rgba(56, 189, 248, 0.35);
-      box-shadow: 0 6px 20px rgba(10,25,47,0.22);
+      background: linear-gradient(135deg, #14171A 0%, #1F242B 100%);
+      color: #fff; padding: 10px 14px;
+      border-bottom: 2px solid #D97706;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.16);
     }
     .topbar-inner {
       max-width: 1200px; margin: 0 auto;
-      display: flex; align-items: center; justify-content: space-between; gap: 12px;
+      display: flex; align-items: center; justify-content: space-between; gap: 10px;
     }
-    .brand { display: flex; align-items: center; gap: 11px; min-width: 0; }
+    .brand { display: flex; align-items: center; gap: 10px; min-width: 0; flex: 1; }
     .brand-logo-wrap {
-      width: 42px; height: 42px; border-radius: 10px; background: #fff;
+      width: 38px; height: 38px; border-radius: 9px; background: #fff;
       display: flex; align-items: center; justify-content: center; overflow: hidden; flex-shrink: 0;
-      padding: 3px; box-shadow: 0 2px 10px rgba(0,0,0,0.25);
+      padding: 3px; box-shadow: 0 2px 8px rgba(0,0,0,0.22);
     }
     .brand-logo-wrap img { width: 100%; height: 100%; object-fit: contain; }
-    .brand-text h1 { margin: 0; font-size: 15px; font-weight: 800; letter-spacing: 0.2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .brand-sub { font-size: 11px; color: #7DD3FC; display: flex; align-items: center; gap: 6px; margin-top: 2px; flex-wrap: wrap; }
+    .brand-text { min-width: 0; flex: 1; }
+    .brand-text h1 {
+      margin: 0; font-size: 14.5px; font-weight: 800; letter-spacing: 0.2px;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .brand-sub {
+      font-size: 10.5px; color: #D1D5DB; display: flex; align-items: center; gap: 6px; margin-top: 2px;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
     .badge-live {
       display: inline-flex; align-items: center; gap: 4px;
-      background: rgba(255,255,255,0.12); padding: 2px 7px; border-radius: 99px; font-size: 10px; font-weight: 700;
+      background: rgba(255,255,255,0.1); padding: 2px 7px; border-radius: 99px; font-size: 10px; font-weight: 700; color: #FDE68A;
     }
     .dot { width: 6px; height: 6px; border-radius: 50%; background: #34D399; }
     .top-actions { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
-    @media (max-width: 520px) {
-      .brand-sub span:first-child { display: none; }
-      .icon-btn { padding: 6px 9px; font-size: 11px; }
-    }
     .icon-btn {
-      border: 1px solid rgba(255,255,255,0.22); background: rgba(255,255,255,0.1);
-      color: #fff; border-radius: 10px; padding: 7px 11px; font-size: 12px; font-weight: 700;
-      cursor: pointer; display: inline-flex; align-items: center; gap: 5px; transition: 0.15s;
+      border: 1px solid rgba(255,255,255,0.18); background: rgba(255,255,255,0.08);
+      color: #fff; border-radius: 9px; padding: 7px 10px; font-size: 12px; font-weight: 700;
+      cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 4px;
+      transition: 0.15s; white-space: nowrap;
     }
-    .icon-btn:hover { background: rgba(255,255,255,0.2); }
+    .icon-btn:hover { background: rgba(255,255,255,0.18); }
     .icon-btn.admin-on { background: var(--emerald); border-color: var(--emerald); }
 
-    /* Hero Project Strip */
-    .project-strip {
-      max-width: 1200px; margin: 12px auto 0; padding: 0 14px;
+    @media (max-width: 600px) {
+      .brand-sub .proj-tag { display: none; }
+      .brand-text h1 { font-size: 13.5px; }
+      .icon-btn { padding: 6px 8px; font-size: 11.5px; }
+      .icon-btn .btn-lbl { display: none; }
     }
-    .project-banner {
-      background: linear-gradient(135deg, #0F2544 0%, #163A63 55%, #0E4D64 100%);
-      color: #fff; border-radius: var(--radius); padding: 12px 16px;
-      display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;
-      box-shadow: 0 4px 16px rgba(10,25,47,0.14);
-      position: relative; overflow: hidden;
-    }
-    .project-banner::after {
-      content: ""; position: absolute; right: -20px; top: -20px; width: 180px; height: 180px;
-      background: radial-gradient(circle, rgba(56,189,248,0.18) 0%, transparent 70%);
-      pointer-events: none;
-    }
-    .pb-left { display: flex; align-items: center; gap: 12px; }
-    .pb-icon {
-      width: 38px; height: 38px; border-radius: 10px; background: rgba(56,189,248,0.18);
-      border: 1px solid rgba(125,211,252,0.35); display: flex; align-items: center; justify-content: center; font-size: 19px;
-    }
-    .pb-title { font-size: 13px; font-weight: 800; letter-spacing: 0.3px; }
-    .pb-sub { font-size: 11px; color: #BAE6FD; margin-top: 2px; }
-    .pb-legend { display: flex; gap: 10px; font-size: 11px; font-weight: 600; flex-wrap: wrap; }
-    .leg-item { display: inline-flex; align-items: center; gap: 5px; background: rgba(255,255,255,0.1); padding: 4px 9px; border-radius: 99px; }
-    .leg-dot { width: 8px; height: 8px; border-radius: 50%; }
 
     .container { max-width: 1200px; margin: 0 auto; padding: 12px 14px 28px; }
 
+    /* Clean Single-Line Nav Pills */
     .nav-pills {
-      display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;
-      background: rgba(255,255,255,0.92); backdrop-filter: blur(8px);
-      padding: 6px; border-radius: var(--radius);
-      box-shadow: var(--shadow); border: 1px solid var(--slate-200); margin-bottom: 14px;
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px;
+      background: #fff; padding: 5px; border-radius: var(--radius);
+      box-shadow: var(--shadow); border: 1px solid var(--slate-200); margin-bottom: 12px;
     }
     .nav-pill {
-      border: none; background: transparent; padding: 10px 8px; border-radius: 10px;
-      font-size: 13px; font-weight: 700; color: var(--slate-600); cursor: pointer;
-      display: flex; align-items: center; justify-content: center; gap: 6px; transition: 0.15s;
+      border: none; background: transparent; padding: 9px 6px; border-radius: 10px;
+      font-size: 12.5px; font-weight: 700; color: var(--slate-600); cursor: pointer;
+      display: flex; align-items: center; justify-content: center; gap: 5px;
+      white-space: nowrap; transition: 0.15s;
     }
-    .nav-pill.active { background: var(--navy); color: #fff; box-shadow: 0 2px 10px rgba(10,25,47,0.22); }
+    .nav-pill.active { background: var(--navy); color: #fff; box-shadow: 0 2px 8px rgba(20,23,26,0.18); }
     .pill-count {
-      font-size: 11px; padding: 1px 7px; border-radius: 99px;
-      background: rgba(148,163,184,0.2); color: inherit;
+      font-size: 10.5px; padding: 1px 6px; border-radius: 99px;
+      background: rgba(134,142,150,0.16); color: inherit; font-weight: 800;
     }
-    .nav-pill.active .pill-count { background: rgba(255,255,255,0.2); }
+    .nav-pill.active .pill-count { background: rgba(255,255,255,0.2); color: #FDE68A; }
 
-    .kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 14px; }
-    @media (max-width: 720px) { .kpi-grid { grid-template-columns: repeat(2, 1fr); } }
+    .kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 12px; }
+    @media (max-width: 720px) { .kpi-grid { grid-template-columns: repeat(2, 1fr); gap: 8px; } }
     .kpi-card {
-      background: rgba(255,255,255,0.95); border: 1px solid var(--slate-200); border-radius: var(--radius);
-      padding: 12px 14px; box-shadow: var(--shadow);
+      background: #fff; border: 1px solid var(--slate-200); border-radius: var(--radius);
+      padding: 11px 13px; box-shadow: var(--shadow);
     }
-    .kpi-label { font-size: 11px; font-weight: 700; color: var(--slate-600); text-transform: uppercase; letter-spacing: 0.4px; display: flex; align-items: center; gap: 5px; }
-    .kpi-val { font-size: 22px; font-weight: 800; color: var(--navy); margin-top: 4px; }
+    .kpi-label { font-size: 10.5px; font-weight: 700; color: var(--slate-600); text-transform: uppercase; letter-spacing: 0.4px; display: flex; align-items: center; gap: 4px; }
+    .kpi-val { font-size: 21px; font-weight: 800; color: var(--navy); margin-top: 3px; }
     .kpi-sub { font-size: 11px; color: var(--slate-400); margin-top: 2px; }
 
     .toolbar { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; align-items: center; }
@@ -157,18 +132,18 @@
       border: 1px solid var(--slate-200); background: #fff; font-size: 13px;
       outline: none; box-shadow: var(--shadow);
     }
-    .search-box input:focus { border-color: var(--cyan); }
+    .search-box input:focus { border-color: var(--navy); }
     .search-icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--slate-400); font-size: 14px; }
     .select-filter {
-      padding: 10px 12px; border-radius: 12px; border: 1px solid var(--slate-200);
-      background: #fff; font-size: 13px; font-weight: 600; color: var(--slate-800); outline: none; max-width: 240px;
+      padding: 9px 11px; border-radius: 12px; border: 1px solid var(--slate-200);
+      background: #fff; font-size: 12.5px; font-weight: 600; color: var(--slate-800); outline: none; max-width: 240px;
     }
     .btn {
       border: none; border-radius: 10px; padding: 9px 14px; font-size: 13px; font-weight: 700;
       cursor: pointer; display: inline-flex; align-items: center; gap: 6px; transition: 0.15s;
     }
     .btn-primary { background: var(--cyan); color: #fff; }
-    .btn-primary:hover { background: #0369A1; }
+    .btn-primary:hover { background: #92400E; }
     .btn-navy { background: var(--navy); color: #fff; }
     .btn-emerald { background: var(--emerald); color: #fff; }
     .btn-outline { background: #fff; border: 1px solid var(--slate-200); color: var(--slate-800); }
@@ -177,17 +152,17 @@
     .btn-xs { padding: 4px 8px; font-size: 11px; border-radius: 6px; }
 
     /* Panel Cards with Status Color Differentiation */
-    .panel-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(310px, 1fr)); gap: 11px; }
+    .panel-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(310px, 1fr)); gap: 10px; }
     .panel-card {
-      background: #fff; border: 1px solid var(--slate-200); border-left: 4px solid var(--slate-400);
+      background: #fff; border: 1px solid var(--slate-200); border-left: 4px solid #ADB5BD;
       border-radius: var(--radius); padding: 13px; box-shadow: var(--shadow);
       cursor: pointer; transition: transform 0.12s, box-shadow 0.12s, border-color 0.12s;
       display: flex; flex-direction: column; gap: 8px;
     }
-    .panel-card:hover { transform: translateY(-2px); box-shadow: 0 6px 18px rgba(10,25,47,0.1); }
+    .panel-card:hover { transform: translateY(-2px); box-shadow: 0 6px 18px rgba(20,23,26,0.08); }
     .panel-card.status-progress {
-      border-left: 4px solid var(--cyan);
-      background: linear-gradient(135deg, #FFFFFF 0%, #F0F9FF 100%);
+      border-left: 4px solid #D97706;
+      background: linear-gradient(135deg, #FFFFFF 0%, #FFFBEB 100%);
     }
     .panel-card.status-done {
       background: var(--emerald-card);
@@ -199,37 +174,37 @@
     .chip-row { display: flex; flex-wrap: wrap; gap: 5px; }
     .chip {
       font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 99px;
-      background: rgba(148,163,184,0.16); color: var(--slate-600);
+      background: rgba(134,142,150,0.14); color: var(--slate-600);
     }
-    .chip-blue { background: var(--cyan-soft); color: #0369A1; }
+    .chip-blue { background: var(--cyan-soft); color: #92400E; }
     .chip-green { background: #059669; color: #fff; }
     .chip-green-soft { background: var(--emerald-soft); color: #047857; }
     .chip-amber { background: var(--amber-soft); color: #B45309; }
-    .chip-purple { background: var(--purple-soft); color: #6D28D9; }
+    .chip-purple { background: var(--purple-soft); color: #374151; }
     .chip-rose { background: var(--rose-soft); color: #B91C1C; }
 
-    .prog-wrap { width: 100%; height: 6px; background: rgba(148,163,184,0.22); border-radius: 99px; overflow: hidden; }
-    .prog-bar { height: 100%; background: linear-gradient(90deg, var(--cyan), var(--emerald)); border-radius: 99px; transition: width 0.25s; }
+    .prog-wrap { width: 100%; height: 6px; background: rgba(134,142,150,0.2); border-radius: 99px; overflow: hidden; }
+    .prog-bar { height: 100%; background: linear-gradient(90deg, #D97706, #059669); border-radius: 99px; transition: width 0.25s; }
     .panel-foot { display: flex; justify-content: space-between; align-items: center; font-size: 12px; color: var(--slate-600); }
 
     .detail-header {
       background: #fff; border: 1px solid var(--slate-200); border-radius: var(--radius);
-      padding: 15px; margin-bottom: 12px; box-shadow: var(--shadow);
+      padding: 14px; margin-bottom: 12px; box-shadow: var(--shadow);
     }
     .detail-header.status-done {
       background: var(--emerald-card); border: 1.5px solid #10B981;
     }
     .panel-rfi-box {
-      margin-top: 10px; padding: 10px 12px; border-radius: 10px;
+      margin-top: 10px; padding: 9px 12px; border-radius: 10px;
       background: rgba(255,255,255,0.75); border: 1px solid var(--slate-200);
       display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;
     }
-    .sub-tabs { display: flex; gap: 8px; margin-top: 11px; border-top: 1px solid rgba(148,163,184,0.2); padding-top: 11px; }
+    .sub-tabs { display: flex; gap: 8px; margin-top: 11px; border-top: 1px solid rgba(134,142,150,0.2); padding-top: 11px; }
     .sub-tab {
       border: 1px solid var(--slate-200); background: #fff; color: var(--slate-600);
       padding: 7px 14px; border-radius: 10px; font-size: 12px; font-weight: 700; cursor: pointer;
     }
-    .sub-tab.active { background: var(--cyan); color: #fff; border-color: var(--cyan); }
+    .sub-tab.active { background: var(--navy); color: #fff; border-color: var(--navy); }
 
     /* System Filter Pills inside Panel Detail */
     .sys-pills { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
@@ -245,13 +220,13 @@
       margin-bottom: 12px; overflow: hidden; box-shadow: var(--shadow);
     }
     .sys-group-head {
-      background: #F1F5F9; padding: 9px 14px; display: flex; justify-content: space-between; align-items: center;
+      background: #F1F3F5; padding: 9px 14px; display: flex; justify-content: space-between; align-items: center;
       font-size: 12px; font-weight: 800; color: var(--navy); border-bottom: 1px solid var(--slate-200);
     }
     .compact-table-wrap { overflow-x: auto; }
     .compact-table { width: 100%; border-collapse: collapse; font-size: 12px; min-width: 600px; }
     .compact-table th {
-      background: #F8FAFC; color: var(--slate-600); text-align: left;
+      background: #F8F9FA; color: var(--slate-600); text-align: left;
       padding: 7px 10px; font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.4px;
       border-bottom: 1px solid var(--slate-200);
     }
@@ -259,11 +234,11 @@
       padding: 7px 10px; border-top: 1px solid var(--slate-100); vertical-align: middle; line-height: 1.35;
     }
     .compact-table tr.row-done td { background: #F0FDF4; }
-    .compact-table tr:hover td { background: #F8FAFC; }
+    .compact-table tr:hover td { background: #F8F9FA; }
     .compact-table tr.row-done:hover td { background: #DCFCE7; }
     .out-cell-name { font-weight: 700; color: var(--navy); }
     .cable-inline { font-weight: 600; color: var(--slate-800); }
-    .cable-qty { display: inline-block; background: var(--cyan-soft); color: #0369A1; font-weight: 800; font-size: 10px; padding: 1px 6px; border-radius: 5px; margin-right: 4px; }
+    .cable-qty { display: inline-block; background: var(--cyan-soft); color: #92400E; font-weight: 800; font-size: 10px; padding: 1px 6px; border-radius: 5px; margin-right: 4px; }
     .cable-qty-e { background: var(--emerald-soft); color: #047857; }
 
     .itp-pill {
@@ -289,7 +264,7 @@
       background: #fff; border: 2px solid var(--slate-200); border-radius: var(--radius);
       padding: 13px 14px; box-shadow: var(--shadow); cursor: pointer; transition: 0.15s;
     }
-    .comp-card.active { border-color: var(--cyan); background: #F0F9FF; }
+    .comp-card.active { border-color: var(--navy); background: #F8F9FA; }
 
     .rfi-table-wrap {
       background: #fff; border: 1px solid var(--slate-200); border-radius: var(--radius);
@@ -304,13 +279,13 @@
     table.rfi-table tr:hover td { background: var(--slate-50); }
 
     .modal-backdrop {
-      position: fixed; inset: 0; background: rgba(10,25,47,0.62); z-index: 80;
+      position: fixed; inset: 0; background: rgba(20,23,26,0.62); z-index: 80;
       display: none; align-items: center; justify-content: center; padding: 14px;
     }
     .modal-backdrop.open { display: flex; }
     .modal {
       background: #fff; border-radius: 16px; width: 100%; max-width: 560px; max-height: 90vh;
-      overflow-y: auto; padding: 18px; box-shadow: 0 20px 50px rgba(0,0,0,0.3);
+      overflow-y: auto; padding: 18px; box-shadow: 0 20px 50px rgba(0,0,0,0.28);
     }
     .modal.modal-lg { max-width: 920px; }
     .modal h3 { margin: 0 0 12px; font-size: 16px; color: var(--navy); }
@@ -345,53 +320,36 @@
     <div class="brand">
       <div class="brand-logo-wrap" title="Dagang Jati Sdn. Bhd.">
         <img id="brandLogoImg" src="./logo.png" alt="Dagang Jati" onerror="this.style.display='none';document.getElementById('logoFallback').style.display='flex';" />
-        <div id="logoFallback" style="display:none;width:100%;height:100%;align-items:center;justify-content:center;background:#0A192F;color:#fff;font-weight:900;font-size:15px;border-radius:7px;">DJ</div>
+        <div id="logoFallback" style="display:none;width:100%;height:100%;align-items:center;justify-content:center;background:#14171A;color:#FDE68A;font-weight:900;font-size:14px;border-radius:6px;">DJ</div>
       </div>
       <div class="brand-text">
         <h1>Dagang Jati T&amp;C Hub</h1>
         <div class="brand-sub">
-          <span>🏗️ YNJDC 3.1 Data Centre • LV</span>
-          <span class="badge-live"><span class="dot"></span><span id="backendBadge">Standalone</span> • v3.6</span>
+          <span class="proj-tag">JDC 3.1 • LV</span>
+          <span class="badge-live"><span class="dot"></span><span id="backendBadge">Standalone</span> • v3.7</span>
         </div>
       </div>
     </div>
     <div class="top-actions">
-      <button class="icon-btn" id="oneTapSyncBtn" onclick="oneTapSync()" title="Refresh / Sync latest data across all devices">🔄 Sync</button>
-      <button class="icon-btn" onclick="exportProgressCsv()" title="Export LV Progress CSV">📊 CSV</button>
-      <button class="icon-btn admin-only" onclick="openSettingsModal()">⚙ Config</button>
-      <button class="icon-btn" id="adminToggleBtn" onclick="handleAdminButton()">🔒 Team View</button>
+      <button class="icon-btn" id="oneTapSyncBtn" onclick="oneTapSync()" title="Refresh / Sync latest data">🔄<span class="btn-lbl"> Sync</span></button>
+      <button class="icon-btn" onclick="exportProgressCsv()" title="Export LV Progress CSV">📊<span class="btn-lbl"> CSV</span></button>
+      <button class="icon-btn admin-only" onclick="openSettingsModal()" title="Settings">⚙<span class="btn-lbl"> Config</span></button>
+      <button class="icon-btn" id="adminToggleBtn" onclick="handleAdminButton()">🔒<span class="btn-lbl"> Team</span></button>
     </div>
   </div>
 </header>
 
-<div class="project-strip">
-  <div class="project-banner">
-    <div class="pb-left">
-      <div class="pb-icon">⚡</div>
-      <div>
-        <div class="pb-title">JDC 3.1 — Low Voltage (LV) Installation &amp; T&amp;C Command</div>
-        <div class="pb-sub">Unified Panel Outgoings • Per-Circuit ITP Verification • Latest PDF Drawings • LV RFI Closure</div>
-      </div>
-    </div>
-    <div class="pb-legend">
-      <span class="leg-item"><span class="leg-dot" style="background:#10B981;"></span>All ITP Done</span>
-      <span class="leg-item"><span class="leg-dot" style="background:#38BDF8;"></span>In Progress</span>
-      <span class="leg-item"><span class="leg-dot" style="background:#94A3B8;"></span>Pending</span>
-    </div>
-  </div>
-</div>
-
 <main class="container">
   <div class="nav-pills">
-    <button class="nav-pill active" id="nav-DAY1" onclick="switchSection('DAY1')">🔌 Day 1 Panels <span class="pill-count" id="cnt-DAY1">0</span></button>
-    <button class="nav-pill" id="nav-DAY2" onclick="switchSection('DAY2')">🏗️ Day 2 Panels <span class="pill-count" id="cnt-DAY2">0</span></button>
-    <button class="nav-pill" id="nav-RFI" onclick="switchSection('RFI')">📋 LV RFI Closure <span class="pill-count" id="cnt-RFI">0%</span></button>
+    <button class="nav-pill active" id="nav-DAY1" onclick="switchSection('DAY1')">Day 1 <span class="pill-count" id="cnt-DAY1">0</span></button>
+    <button class="nav-pill" id="nav-DAY2" onclick="switchSection('DAY2')">Day 2 <span class="pill-count" id="cnt-DAY2">0</span></button>
+    <button class="nav-pill" id="nav-RFI" onclick="switchSection('RFI')">LV RFI <span class="pill-count" id="cnt-RFI">0%</span></button>
   </div>
 
   <div id="appRoot"></div>
 
   <div class="footer-note">
-    Dagang Jati Sdn. Bhd. • T&amp;C Department (LV Discipline) • Build v3.6 • Static GitHub Pages PWA
+    Dagang Jati Sdn. Bhd. • T&amp;C Department (LV Discipline) • Build v3.7 • Static GitHub Pages PWA
   </div>
 </main>
 
@@ -737,7 +695,7 @@ function hashPin(str) {
   }
   return (h >>> 0).toString(16);
 }
-const INIT_HASH = hashPin("2026");
+const INIT_HASH = hashPin("TNC2026");
 
 // Strict garbage row filter — runs automatically on load, import, and sync!
 function isGarbageOutgoingRow(outgoing, pNos, pSize, eNos, eSize) {
@@ -912,7 +870,7 @@ async function oneTapSync() {
   if (cfg.backend === "local") {
     return toast("Standalone mode — connect Google Cloud in ⚙ Config to sync across devices");
   }
-  if (btn) btn.textContent = "⏳ Syncing...";
+  if (btn) btn.innerHTML = '⏳<span class="btn-lbl"> Syncing...</span>';
   try {
     if (isAdmin && hasUnsyncedAdminChanges) {
       if (cfg.backend === "apps_script" && cfg.gasUrl) await pushToAppsScript(false);
@@ -923,13 +881,20 @@ async function oneTapSync() {
       else if (cfg.backend === "firebase" && cfg.firebaseJson) await testFirebaseSync(false);
     }
   } finally {
-    if (btn) btn.textContent = "🔄 Sync";
+    if (btn) btn.innerHTML = '🔄<span class="btn-lbl"> Sync</span>';
   }
 }
 function loadCfg() {
   try {
     const raw = localStorage.getItem(CFG_KEY);
-    if (raw) return JSON.parse(raw);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (parsed.pinHash === hashPin("2026")) {
+        parsed.pinHash = INIT_HASH;
+        parsed.pinRaw = "TNC2026";
+      }
+      return parsed;
+    }
   } catch (e) {}
   return {
     backend: TEAM_DEFAULT_FIREBASE ? "firebase" : (TEAM_DEFAULT_GAS_URL ? "apps_script" : "local"),
@@ -1625,7 +1590,7 @@ async function saveDwg() {
       try {
         const res = await fetch(cfg.gasUrl, {
           method: "POST",
-          body: JSON.stringify({ action: "uploadPdf", pin: cfg.pinRaw || "2026", fileName: (() => {
+          body: JSON.stringify({ action: "uploadPdf", pin: cfg.pinRaw || "TNC2026", fileName: (() => {
             const cleanRev = (rev || "").replace(/[^a-zA-Z0-9 _-]/g, "").trim();
             const base = file.name.replace(/\.pdf$/i, "").trim();
             return base.toUpperCase().startsWith(p.name.toUpperCase())
@@ -1997,7 +1962,7 @@ async function pushToAppsScript(silent) {
   if (!url) return toast("Paste your Apps Script Web App URL first");
   const t0 = performance.now();
   try {
-    const res = await fetch(url, { method: "POST", body: JSON.stringify({ action: "saveState", pin: cfg.pinRaw || "2026", state }) });
+    const res = await fetch(url, { method: "POST", body: JSON.stringify({ action: "saveState", pin: cfg.pinRaw || "TNC2026", state }) });
     const data = await res.json();
     const ms = Math.round(performance.now() - t0);
     if (data.error) throw new Error(data.error);
@@ -2060,7 +2025,7 @@ async function runBulkPairDriveDwgs() {
   try {
     const res = await fetch(url, {
       method: "POST",
-      body: JSON.stringify({ action: "bulkPairDwgs", pin: cfg.pinRaw || "2026", sourceFolderUrl: folderInput })
+      body: JSON.stringify({ action: "bulkPairDwgs", pin: cfg.pinRaw || "TNC2026", sourceFolderUrl: folderInput })
     });
     const data = await res.json();
     if (data.error) throw new Error(data.error);
@@ -2087,7 +2052,7 @@ async function runScanPdfRevisions() {
   try {
     const res = await fetch(url, {
       method: "POST",
-      body: JSON.stringify({ action: "scanRevisionsBatch", pin: cfg.pinRaw || "2026", batchSize: 10 })
+      body: JSON.stringify({ action: "scanRevisionsBatch", pin: cfg.pinRaw || "TNC2026", batchSize: 10 })
     });
     const data = await res.json();
     if (data.error) throw new Error(data.error);
