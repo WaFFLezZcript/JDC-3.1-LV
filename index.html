@@ -351,7 +351,7 @@
         <h1>Dagang Jati T&amp;C Hub</h1>
         <div class="brand-sub">
           <span>🏗️ YNJDC 3.1 Data Centre • LV</span>
-          <span class="badge-live"><span class="dot"></span><span id="backendBadge">Standalone</span> • v3.5</span>
+          <span class="badge-live"><span class="dot"></span><span id="backendBadge">Standalone</span> • v3.6</span>
         </div>
       </div>
     </div>
@@ -391,7 +391,7 @@
   <div id="appRoot"></div>
 
   <div class="footer-note">
-    Dagang Jati Sdn. Bhd. • T&amp;C Department (LV Discipline) • Build v3.5 • Static GitHub Pages PWA
+    Dagang Jati Sdn. Bhd. • T&amp;C Department (LV Discipline) • Build v3.6 • Static GitHub Pages PWA
   </div>
 </main>
 
@@ -1977,7 +1977,7 @@ async function syncFromAppsScript(silent) {
   const t0 = performance.now();
   if (!silent) toast("Pulling live data...");
   try {
-    const res = await fetch(url + "?action=getState");
+    const res = await fetch(url + "?action=getState&t=" + Date.now(), { cache: "no-store" });
     const data = await res.json();
     const ms = Math.round(performance.now() - t0);
     if (data.panels) state.panels = data.panels;
@@ -1985,9 +1985,10 @@ async function syncFromAppsScript(silent) {
     sanitizeState(mergeMissingFromSeed(state));
     saveState(true);
     render();
+    const pdfPanels = state.panels.filter(p => (p.dwgs || []).length > 0).length;
     const el = document.getElementById("syncLatency");
-    if (el) el.textContent = `Cloud pull: ${ms} ms`;
-    if (!silent) toast(`Synced ${state.panels.length} panels & ${state.rfis.length} RFIs (${ms}ms)`);
+    if (el) el.textContent = `Cloud pull: ${ms} ms (${pdfPanels} panels with PDFs)`;
+    if (!silent) toast(`Synced ${state.panels.length} panels (${pdfPanels} with PDFs)`);
   } catch (e) { if (!silent) toast("Sync error: " + e.message); }
 }
 
@@ -2057,8 +2058,6 @@ async function runBulkPairDriveDwgs() {
   btn.textContent = "⏳ Extracting & Pairing...";
   stEl.textContent = "Moving PDFs, cleaning duplicate filenames, and pairing to panels (including FMS Day 1 & Day 2)...";
   try {
-    // Push current state first so cloud has all latest panels & ITPs
-    await fetch(url, { method: "POST", body: JSON.stringify({ action: "saveState", pin: cfg.pinRaw || "2026", state }) });
     const res = await fetch(url, {
       method: "POST",
       body: JSON.stringify({ action: "bulkPairDwgs", pin: cfg.pinRaw || "2026", sourceFolderUrl: folderInput })
