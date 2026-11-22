@@ -80,7 +80,11 @@
       background: rgba(255,255,255,0.12); padding: 2px 7px; border-radius: 99px; font-size: 10px; font-weight: 700;
     }
     .dot { width: 6px; height: 6px; border-radius: 50%; background: #34D399; }
-    .top-actions { display: flex; align-items: center; gap: 7px; flex-shrink: 0; }
+    .top-actions { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+    @media (max-width: 520px) {
+      .brand-sub span:first-child { display: none; }
+      .icon-btn { padding: 6px 9px; font-size: 11px; }
+    }
     .icon-btn {
       border: 1px solid rgba(255,255,255,0.22); background: rgba(255,255,255,0.1);
       color: #fff; border-radius: 10px; padding: 7px 11px; font-size: 12px; font-weight: 700;
@@ -345,7 +349,7 @@
         <h1>Dagang Jati T&amp;C Hub</h1>
         <div class="brand-sub">
           <span>🏗️ YNJDC 3.1 Data Centre • LV</span>
-          <span class="badge-live"><span class="dot"></span><span id="backendBadge">Standalone</span> • v3.1</span>
+          <span class="badge-live"><span class="dot"></span><span id="backendBadge">Standalone</span> • v3.2</span>
         </div>
       </div>
     </div>
@@ -384,7 +388,7 @@
   <div id="appRoot"></div>
 
   <div class="footer-note">
-    Dagang Jati Sdn. Bhd. • T&amp;C Department (LV Discipline) • Build v3.1 • Static GitHub Pages PWA
+    Dagang Jati Sdn. Bhd. • T&amp;C Department (LV Discipline) • Build v3.2 • Static GitHub Pages PWA
   </div>
 </main>
 
@@ -469,7 +473,8 @@
     <div style="display:flex;gap:8px;flex-wrap:wrap;border-top:1px solid var(--slate-200);padding-top:12px;align-items:center;">
       <button class="btn btn-outline btn-sm" onclick="exportBackupJson()">💾 Export JSON</button>
       <label class="btn btn-outline btn-sm" style="cursor:pointer;">📂 Import JSON<input type="file" accept=".json" style="display:none;" onchange="importBackupJson(this)" /></label>
-      <button class="btn btn-danger btn-sm" onclick="resetToSeed()">↺ Reset</button>
+      <button class="btn btn-outline btn-sm" id="restoreResetBtn" style="display:none;border-color:var(--amber);color:var(--amber);" onclick="restorePreResetBackup()">↩ Restore Pre-Reset Backup</button>
+      <button class="btn btn-danger btn-sm" onclick="resetToSeed()">⚠ Reset</button>
       <span id="syncLatency" style="font-size:11px;color:var(--slate-600);margin-left:auto;"></span>
     </div>
 
@@ -1718,6 +1723,9 @@ function exportProgressCsv() {
 // --- Settings & Cloud Sync ---
 function openSettingsModal() {
   document.getElementById("cfgBackend").value = cfg.backend || "local";
+  const hasBackup = !!localStorage.getItem("dj_lv_tnc_pre_reset_backup");
+  const rb = document.getElementById("restoreResetBtn");
+  if (rb) rb.style.display = hasBackup ? "inline-flex" : "none";
   document.getElementById("cfgPin").value = "";
   document.getElementById("cfgGasUrl").value = cfg.gasUrl || "";
   document.getElementById("cfgFirebaseJson").value = cfg.firebaseJson || "";
@@ -1852,11 +1860,30 @@ function importBackupJson(input) {
 }
 
 function resetToSeed() {
-  if (!confirm("Reset local browser data back to default embedded panels & RFIs?")) return;
+  const typed = prompt("⚠️ WARNING: This will reset local browser data to default.\n\nAn automatic recovery backup will be saved first.\nType RESET in capital letters to confirm:");
+  if (typed !== "RESET") return toast("Reset cancelled");
+  try {
+    localStorage.setItem("dj_lv_tnc_pre_reset_backup", JSON.stringify({ savedAt: new Date().toISOString(), state }));
+  } catch (e) {}
   state = sanitizeState(JSON.parse(JSON.stringify(SEED_DATA)));
   saveState();
+  const rb = document.getElementById("restoreResetBtn");
+  if (rb) rb.style.display = "inline-flex";
   render();
-  toast("Reset complete");
+  toast("Reset complete (Auto-backup saved — you can undo anytime)");
+}
+
+function restorePreResetBackup() {
+  try {
+    const raw = localStorage.getItem("dj_lv_tnc_pre_reset_backup");
+    if (!raw) return toast("No pre-reset backup found");
+    const parsed = JSON.parse(raw);
+    if (!confirm("Restore data from pre-reset backup (" + (parsed.savedAt || "recent") + ")?")) return;
+    state = sanitizeState(parsed.state);
+    saveState();
+    render();
+    toast("Pre-reset data restored!");
+  } catch (e) { toast("Could not restore backup"); }
 }
 
 function esc(s) {
