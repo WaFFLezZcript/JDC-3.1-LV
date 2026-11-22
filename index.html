@@ -325,6 +325,8 @@
 
     .admin-only { display: none !important; }
     .admin-mode .admin-only { display: inline-flex !important; }
+    .admin-mode th.admin-only,
+    .admin-mode td.admin-only { display: table-cell !important; vertical-align: middle; }
 
     .toast {
       position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
@@ -349,7 +351,7 @@
         <h1>Dagang Jati T&amp;C Hub</h1>
         <div class="brand-sub">
           <span>🏗️ YNJDC 3.1 Data Centre • LV</span>
-          <span class="badge-live"><span class="dot"></span><span id="backendBadge">Standalone</span> • v3.4</span>
+          <span class="badge-live"><span class="dot"></span><span id="backendBadge">Standalone</span> • v3.5</span>
         </div>
       </div>
     </div>
@@ -389,7 +391,7 @@
   <div id="appRoot"></div>
 
   <div class="footer-note">
-    Dagang Jati Sdn. Bhd. • T&amp;C Department (LV Discipline) • Build v3.4 • Static GitHub Pages PWA
+    Dagang Jati Sdn. Bhd. • T&amp;C Department (LV Discipline) • Build v3.5 • Static GitHub Pages PWA
   </div>
 </main>
 
@@ -452,6 +454,18 @@
       <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;">
         <button class="btn btn-primary btn-sm" onclick="syncFromAppsScript()">⬇ Pull Live Data</button>
         <button class="btn btn-emerald btn-sm" onclick="pushToAppsScript()">⬆ Push State to Cloud</button>
+      </div>
+      <div style="margin-top:12px;padding-top:10px;border-top:1px dashed var(--slate-200);">
+        <div style="font-weight:800;font-size:12px;color:var(--navy);margin-bottom:6px;">📂 Bulk Drive PDF Auto-Pair, Cleanup &amp; Title-Block Revision Scanner</div>
+        <div class="form-group" style="margin-bottom:6px;">
+          <label>Uploaded DWG Folder Link (Extracts PDFs to Main Folder &amp; Removes Uploaded Folder)</label>
+          <input type="url" id="cfgDwgSourceFolder" value="https://drive.google.com/drive/folders/1JoU8JjbsmRfuFkVmOsNEKZjB9RiJmgWp?usp=drive_link" placeholder="Paste Google Drive folder link..." />
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:6px;">
+          <button class="btn btn-navy btn-sm" id="btnBulkPair" onclick="runBulkPairDriveDwgs()">⚡ Auto-Pair DWGs &amp; Clean Filenames</button>
+          <button class="btn btn-primary btn-sm" id="btnScanRev" onclick="runScanPdfRevisions()">🔍 Auto-Read PDF Revisions (Title Block)</button>
+        </div>
+        <div id="bulkPairStatus" style="font-size:11px;color:var(--slate-600);margin-top:6px;"></div>
       </div>
     </div>
 
@@ -787,10 +801,18 @@ function mergeMissingFromSeed(st) {
       });
       existing.outgoings = existing.outgoings || [];
       const existingKeys = new Set(existing.outgoings.map(o => (cleanSystemName(o.system) + "||" + String(o.outgoing || "").trim()).toUpperCase()));
+      const existingIds = new Set(existing.outgoings.map(o => o.id));
       (sp.outgoings || []).forEach(so => {
         const ok = (cleanSystemName(so.system) + "||" + String(so.outgoing || "").trim()).toUpperCase();
         if (!existingKeys.has(ok)) {
-          existing.outgoings.push(JSON.parse(JSON.stringify(so)));
+          const cloneOut = JSON.parse(JSON.stringify(so));
+          if (!cloneOut.id || existingIds.has(cloneOut.id)) {
+            let n = existing.outgoings.length + 1;
+            while (existingIds.has(existing.id + "-O" + n)) n++;
+            cloneOut.id = existing.id + "-O" + n;
+          }
+          existingIds.add(cloneOut.id);
+          existing.outgoings.push(cloneOut);
           existingKeys.add(ok);
         }
       });
@@ -808,16 +830,30 @@ function cleanCableSize(s) {
   return str.trim() || "-";
 }
 
+function isSignalSystem(sysName) {
+  const u = String(sysName || "").toUpperCase();
+  return u.includes("ATS") || u.includes("BTMS") || u.includes("FMS");
+}
+
 function sanitizeState(st) {
   if (!st || !Array.isArray(st.panels)) return st;
   st.panels.forEach(p => {
     p.systems = [...new Set((p.systems || []).map(cleanSystemName).filter(Boolean))];
     p.outgoings = (p.outgoings || []).filter(o => !isGarbageOutgoingRow(o.outgoing, o.pNos, o.pSize, o.eNos, o.eSize));
+    const seenIds = new Set();
+    let seq = 1;
     p.outgoings.forEach(o => {
       if (o.system) o.system = cleanSystemName(o.system);
       o.pSize = cleanCableSize(o.pSize);
       o.eSize = cleanCableSize(o.eSize);
       if (typeof o.itpDone !== "boolean") o.itpDone = (Number(o.itpStage) >= 6) || false;
+      if (!o.id || seenIds.has(o.id)) {
+        let candidate = p.id + "-O" + seq;
+        while (seenIds.has(candidate)) { seq++; candidate = p.id + "-O" + seq; }
+        o.id = candidate;
+      }
+      seenIds.add(o.id);
+      seq++;
     });
   });
   return st;
@@ -1221,7 +1257,7 @@ function buildOutgoingsResultsHtml(p) {
               <tr>
                 <th style="width:34px;">#</th>
                 <th>Outgoing</th>
-                <th>Power Cable</th>
+                <th>${isSignalSystem(sys) ? "Signal Cable" : "Power Cable"}</th>
                 <th>Earth Cable</th>
                 <th style="width:110px;">ITP Status</th>
                 <th class="admin-only" style="width:74px;">Edit</th>
@@ -1239,9 +1275,11 @@ function buildOutgoingsResultsHtml(p) {
                       ${o.itpDone ? '✓ ITP Done' : '○ Pending'}
                     </button>
                   </td>
-                  <td class="admin-only" style="gap:4px;">
-                    <button class="btn btn-outline btn-xs" onclick="openOutgoingModal('${esc(p.id)}','${esc(o.id)}')">✏</button>
-                    <button class="btn btn-danger btn-xs" onclick="deleteOutgoing('${esc(p.id)}','${esc(o.id)}')">🗑</button>
+                  <td class="admin-only">
+                    <div style="display:inline-flex;gap:4px;align-items:center;">
+                      <button class="btn btn-outline btn-xs" onclick="openOutgoingModal('${esc(p.id)}','${esc(o.id)}')">✏</button>
+                      <button class="btn btn-danger btn-xs" onclick="deleteOutgoing('${esc(p.id)}','${esc(o.id)}')">🗑</button>
+                    </div>
                   </td>
                 </tr>
               `).join("")}
@@ -1342,9 +1380,11 @@ function buildRfiTableHtml() {
                 <td><span class="chip ${stCls}">${esc(r.status)}</span></td>
                 <td>${esc(r.pic || "-")}</td>
                 <td>${esc(r.remarks || "-")}</td>
-                <td class="admin-only" style="gap:5px;">
-                  <button class="btn btn-outline btn-xs" onclick="openRfiModal('${esc(r.id)}')">✏</button>
-                  <button class="btn btn-danger btn-xs" onclick="deleteRfi('${esc(r.id)}')">🗑</button>
+                <td class="admin-only">
+                  <div style="display:inline-flex;gap:5px;align-items:center;">
+                    <button class="btn btn-outline btn-xs" onclick="openRfiModal('${esc(r.id)}')">✏</button>
+                    <button class="btn btn-danger btn-xs" onclick="deleteRfi('${esc(r.id)}')">🗑</button>
+                  </div>
                 </td>
               </tr>
             `;
@@ -1585,7 +1625,13 @@ async function saveDwg() {
       try {
         const res = await fetch(cfg.gasUrl, {
           method: "POST",
-          body: JSON.stringify({ action: "uploadPdf", pin: cfg.pinRaw || "2026", fileName: `${p.name}_${rev}_${file.name}`, base64: base64.split(",")[1] })
+          body: JSON.stringify({ action: "uploadPdf", pin: cfg.pinRaw || "2026", fileName: (() => {
+            const cleanRev = (rev || "").replace(/[^a-zA-Z0-9 _-]/g, "").trim();
+            const base = file.name.replace(/\.pdf$/i, "").trim();
+            return base.toUpperCase().startsWith(p.name.toUpperCase())
+              ? `${p.name}${cleanRev ? "_" + cleanRev : ""}.pdf`
+              : `${p.name}${cleanRev ? "_" + cleanRev : ""}_${base}.pdf`;
+          })(), base64: base64.split(",")[1] })
         });
         const data = await res.json();
         if (data.url) url = data.url;
@@ -1999,6 +2045,63 @@ async function pushToFirebase(silent) {
     document.getElementById("syncLatency").textContent = `Firebase push: ${ms} ms`;
     hasUnsyncedAdminChanges = false; if (!silent) toast(`Synced to Firebase (${ms}ms)`);
   } catch (e) { toast("Firebase push error: " + e.message); }
+}
+
+async function runBulkPairDriveDwgs() {
+  const url = document.getElementById("cfgGasUrl").value.trim() || cfg.gasUrl;
+  if (!url) return toast("Apps Script URL is required");
+  const folderInput = document.getElementById("cfgDwgSourceFolder").value.trim();
+  const btn = document.getElementById("btnBulkPair");
+  const stEl = document.getElementById("bulkPairStatus");
+  btn.disabled = true;
+  btn.textContent = "⏳ Extracting & Pairing...";
+  stEl.textContent = "Moving PDFs, cleaning duplicate filenames, and pairing to panels (including FMS Day 1 & Day 2)...";
+  try {
+    // Push current state first so cloud has all latest panels & ITPs
+    await fetch(url, { method: "POST", body: JSON.stringify({ action: "saveState", pin: cfg.pinRaw || "2026", state }) });
+    const res = await fetch(url, {
+      method: "POST",
+      body: JSON.stringify({ action: "bulkPairDwgs", pin: cfg.pinRaw || "2026", sourceFolderUrl: folderInput })
+    });
+    const data = await res.json();
+    if (data.error) throw new Error(data.error);
+    stEl.textContent = `✅ Done! Moved ${data.moved || 0} PDFs, cleaned ${data.renamed || 0} filenames, removed ${data.duplicatesRemoved || 0} duplicates, paired ${data.pairedCount || 0} panel links (FMS D1: ${data.fmsD1 || 0}, FMS D2: ${data.fmsD2 || 0}).`;
+    await syncFromAppsScript(true);
+    toast("All Drive DWGs paired & folder cleaned!");
+  } catch (e) {
+    stEl.textContent = "❌ Error: " + e.message;
+    toast("Bulk pair error: " + e.message);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = "⚡ Auto-Pair DWGs & Clean Filenames";
+  }
+}
+
+async function runScanPdfRevisions() {
+  const url = document.getElementById("cfgGasUrl").value.trim() || cfg.gasUrl;
+  if (!url) return toast("Apps Script URL is required");
+  const btn = document.getElementById("btnScanRev");
+  const stEl = document.getElementById("bulkPairStatus");
+  btn.disabled = true;
+  btn.textContent = "⏳ Scanning Title Blocks...";
+  stEl.textContent = "Reading REV from PDF title blocks using Google Drive OCR (batches of 10)...";
+  try {
+    const res = await fetch(url, {
+      method: "POST",
+      body: JSON.stringify({ action: "scanRevisionsBatch", pin: cfg.pinRaw || "2026", batchSize: 10 })
+    });
+    const data = await res.json();
+    if (data.error) throw new Error(data.error);
+    stEl.textContent = `✅ Updated ${data.updated || 0} revisions this batch. Remaining unscanned: ${data.remaining || 0}.` + (data.remaining > 0 ? " Click again for next batch!" : " All PDFs scanned!");
+    await syncFromAppsScript(true);
+    toast(data.remaining > 0 ? `Updated ${data.updated} PDFs (${data.remaining} left)` : "All PDF revisions updated!");
+  } catch (e) {
+    stEl.textContent = "❌ Error: " + e.message;
+    toast("OCR scan error: " + e.message);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = "🔍 Auto-Read PDF Revisions (Title Block)";
+  }
 }
 
 function exportBackupJson() {
