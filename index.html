@@ -214,15 +214,23 @@
     .section-divider.today-div { color: #B45309; margin-top: 4px; }
     .section-divider.today-div::after { background: #FCD34D; }
     .rfi-tick-wrap {
-      display: inline-flex; align-items: center; gap: 5px;
-      padding: 3px 8px; border-radius: 8px; border: 1px solid var(--slate-200);
-      background: #fff; font-size: 11px; font-weight: 700; color: var(--slate-600);
-      cursor: pointer; user-select: none;
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 26px; height: 24px; border-radius: 7px; border: 1.5px solid var(--slate-200);
+      background: #fff; cursor: pointer; user-select: none; transition: 0.15s;
     }
     .rfi-tick-wrap.ticked {
-      background: var(--navy); color: #FDE68A; border-color: var(--navy);
+      background: var(--navy); border-color: var(--navy);
     }
-    .rfi-tick-wrap input { margin: 0; accent-color: #D97706; cursor: pointer; }
+    .rfi-tick-wrap input { margin: 0; width: 14px; height: 14px; accent-color: #D97706; cursor: pointer; }
+    .floating-inv-bar {
+      position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%);
+      z-index: 60; background: var(--navy); color: #fff;
+      border: 1.5px solid #D97706; border-radius: 99px;
+      padding: 8px 10px 8px 16px; display: none; align-items: center; gap: 10px;
+      box-shadow: 0 10px 28px rgba(0,0,0,0.32); max-width: calc(100vw - 24px);
+    }
+    .floating-inv-bar.show { display: inline-flex; }
+    .floating-inv-count { font-size: 12.5px; font-weight: 800; color: #FDE68A; white-space: nowrap; }
     .rfi-builder-btn {
       border: 1.5px solid var(--navy); background: var(--navy); color: #FDE68A;
       border-radius: 12px; padding: 9px 13px; font-size: 12.5px; font-weight: 800;
@@ -396,14 +404,14 @@
         <h1>Dagang Jati T&amp;C Hub</h1>
         <div class="brand-sub">
           <span class="proj-tag">JDC 3.1 • LV</span>
-          <span class="badge-live"><span class="dot"></span><span id="backendBadge">Standalone</span> • v3.9</span>
+          <span class="badge-live"><span class="dot"></span><span id="backendBadge">Standalone</span> • v4.0</span>
         </div>
       </div>
     </div>
     <div class="top-actions">
       <button class="icon-btn" id="oneTapSyncBtn" onclick="oneTapSync()" title="Refresh / Sync latest data">🔄<span class="btn-lbl"> Sync</span></button>
       <button class="icon-btn" onclick="exportProgressCsv()" title="Export LV Progress CSV">📊<span class="btn-lbl"> CSV</span></button>
-      <button class="icon-btn admin-only" onclick="openSettingsModal()" title="Settings">⚙<span class="btn-lbl"> Config</span></button>
+      <button class="icon-btn admin-only" onclick="openSettingsModal()" title="Settings">⚙<span class="btn-lbl"> Setting</span></button>
       <button class="icon-btn" id="adminToggleBtn" onclick="handleAdminButton()">🔒<span class="btn-lbl"> Team</span></button>
     </div>
   </div>
@@ -419,7 +427,7 @@
   <div id="appRoot"></div>
 
   <div class="footer-note">
-    Dagang Jati Sdn. Bhd. • T&amp;C Department (LV Discipline) • Build v3.9 • Static GitHub Pages PWA
+    Dagang Jati Sdn. Bhd. • T&amp;C Department (LV Discipline) • Build v4.0 • Static GitHub Pages PWA
   </div>
 </main>
 
@@ -713,7 +721,7 @@
 <!-- WhatsApp RFI List Builder Modal -->
 <div class="modal-backdrop" id="waRfiModal">
   <div class="modal">
-    <h3>📋 Create WhatsApp RFI List</h3>
+    <h3>📩 Create ITP Invitation</h3>
     <p style="font-size:12px;color:var(--slate-600);margin-top:0;">Choose the inspection date, time, and location, then copy straight to WhatsApp.</p>
     <div class="form-row">
       <div class="form-group">
@@ -743,6 +751,13 @@
       <button class="btn btn-emerald" onclick="copyWaRfiToClipboard()">📋 Copy for WhatsApp</button>
     </div>
   </div>
+</div>
+
+<!-- Floating Bottom Bar for Invitation Builder -->
+<div class="floating-inv-bar" id="floatingInvBar">
+  <span class="floating-inv-count" id="floatingInvCount">0 selected</span>
+  <button class="btn btn-primary btn-sm" style="border-radius:99px;" onclick="openWaRfiModal()">📩 Create Invitation</button>
+  <button class="btn btn-outline btn-xs" style="border-radius:99px;background:rgba(255,255,255,0.12);color:#fff;border-color:rgba(255,255,255,0.2);" onclick="clearRfiSelection()" title="Clear selection">✕</button>
 </div>
 
 <div class="toast" id="toast"></div>
@@ -1117,6 +1132,7 @@ function render() {
   } else {
     renderPanelList(root, currentSection);
   }
+  updateFloatingInvBar();
 }
 
 
@@ -1233,7 +1249,10 @@ function getLocalDateStr() {
 }
 
 function isPanelItpToday(p) {
-  return Boolean(p && p.itpTodayDate && p.itpTodayDate === getLocalDateStr());
+  if (!p) return false;
+  const st = getPanelStats(p);
+  if (st.allDone) return false; // Auto-clear when 100% ITP Done
+  return Boolean(p.readyForItp || p.itpTodayDate);
 }
 
 function togglePanelItpToday(panelId, ev) {
@@ -1241,16 +1260,38 @@ function togglePanelItpToday(panelId, ev) {
   if (!isAdmin) return;
   const p = state.panels.find(x => x.id === panelId);
   if (!p) return;
-  const today = getLocalDateStr();
-  if (p.itpTodayDate === today) {
+  const st = getPanelStats(p);
+  if (st.allDone) {
+    p.readyForItp = false;
     p.itpTodayDate = "";
-    toast(`Removed ${p.name} from Today's ITP`);
+    saveState();
+    render();
+    return toast("Panel is already 100% ITP Done");
+  }
+  if (p.readyForItp || p.itpTodayDate) {
+    p.readyForItp = false;
+    p.itpTodayDate = "";
+    toast(`Removed ${p.name} from Ready for ITP`);
   } else {
-    p.itpTodayDate = today;
-    toast(`⚡ Marked ${p.name} for Today's ITP`);
+    p.readyForItp = true;
+    p.itpTodayDate = "";
+    toast(`⚡ Marked ${p.name} as Ready for ITP`);
   }
   saveState();
   render();
+}
+
+function updateFloatingInvBar() {
+  const bar = document.getElementById("floatingInvBar");
+  const cnt = document.getElementById("floatingInvCount");
+  if (!bar || !cnt) return;
+  const n = selectedRfiPanelIds.size;
+  if (n > 0 && !selectedPanelId && currentSection !== "RFI") {
+    cnt.textContent = `${n} panel${n === 1 ? "" : "s"} selected`;
+    bar.classList.add("show");
+  } else {
+    bar.classList.remove("show");
+  }
 }
 
 function getFilteredDayPanels(day) {
@@ -1289,12 +1330,12 @@ function renderSinglePanelCard(p) {
   const badge = st.allDone
     ? `<span class="chip chip-green">✓ ALL ITP DONE</span>`
     : (isToday
-        ? `<span class="chip chip-ongoing"><span class="live-dot-pulse"></span>ONGOING ITP</span>`
+        ? ``
         : (st.done > 0 ? `<span class="chip chip-blue">${st.done}/${st.total} Done</span>` : `<span class="chip chip-amber">Pending</span>`));
 
   return `
     <div class="panel-card ${cardCls}" onclick="openPanelDetail('${esc(p.id)}')">
-      ${isToday ? `<div class="today-strip"><span>⚡ ONGOING ITP TODAY</span><span>${st.done}/${st.total} Done</span></div>` : ""}
+      ${isToday ? `<div class="today-strip"><span><span class="live-dot-pulse" style="display:inline-block;margin-right:5px;vertical-align:middle;"></span>READY FOR ITP</span><span>${st.done}/${st.total} Done</span></div>` : ""}
       <div class="panel-head">
         <div class="panel-title">⚡ ${esc(p.name)}</div>
         ${badge}
@@ -1310,11 +1351,10 @@ function renderSinglePanelCard(p) {
       <div class="panel-foot">
         <span>🔌 <strong>${st.done}/${st.total}</strong> Outgoings</span>
         <div style="display:flex;align-items:center;gap:6px;">
-          <label class="rfi-tick-wrap ${isTicked ? 'ticked' : ''}" onclick="toggleRfiSelect('${esc(p.id)}', event)" title="Tick to include in WhatsApp RFI list">
+          <label class="rfi-tick-wrap ${isTicked ? 'ticked' : ''}" onclick="toggleRfiSelect('${esc(p.id)}', event)" title="Tick to include in ITP Invitation">
             <input type="checkbox" ${isTicked ? 'checked' : ''} onclick="event.stopPropagation();toggleRfiSelect('${esc(p.id)}', event);" />
-            RFI
           </label>
-          <button class="btn btn-xs admin-only ${isToday ? 'btn-primary' : 'btn-outline'}" onclick="togglePanelItpToday('${esc(p.id)}', event)">${isToday ? '⚡ Ongoing ✓' : '📅 Today ITP'}</button>
+          <button class="btn btn-xs admin-only ${isToday ? 'btn-primary' : 'btn-outline'}" onclick="togglePanelItpToday('${esc(p.id)}', event)">${isToday ? '⚡ Ready ✓' : '⚡ Ready ITP'}</button>
           <span>📄 <strong>${dwgCount}</strong></span>
         </div>
       </div>
@@ -1333,14 +1373,14 @@ function buildPanelListResultsHtml(day) {
     gridHtml = `<div style="text-align:center;padding:36px;color:var(--slate-400);background:#fff;border-radius:14px;border:1px solid var(--slate-200);">No panels match your filter.</div>`;
   } else if (todayCards.length > 0 && otherCards.length > 0) {
     gridHtml = `
-      <div class="section-divider today-div">⚡ Ongoing ITP Today (${todayCards.length})</div>
+      <div class="section-divider today-div">⚡ Ready for ITP (${todayCards.length})</div>
       <div class="panel-grid">${todayCards.map(renderSinglePanelCard).join("")}</div>
       <div class="section-divider">All Other Panels (${otherCards.length} shown)</div>
       <div class="panel-grid">${otherCards.map(renderSinglePanelCard).join("")}</div>
     `;
   } else {
     gridHtml = `
-      ${todayCards.length > 0 ? `<div class="section-divider today-div">⚡ Ongoing ITP Today (${todayCards.length})</div>` : ""}
+      ${todayCards.length > 0 ? `<div class="section-divider today-div">⚡ Ready for ITP (${todayCards.length})</div>` : ""}
       <div class="panel-grid">${shown.map(renderSinglePanelCard).join("")}</div>
     `;
   }
@@ -1348,7 +1388,7 @@ function buildPanelListResultsHtml(day) {
   return `
     <div style="font-size:12px;color:var(--slate-600);margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;">
       <span>Showing <strong>${shown.length}</strong> of <strong>${filtered.length}</strong> panels</span>
-      ${selectedRfiPanelIds.size > 0 ? `<span style="color:#B45309;font-weight:700;">☑ ${selectedRfiPanelIds.size} panel${selectedRfiPanelIds.size===1?'':'s'} ticked for RFI</span>` : `<span style="color:var(--slate-400);">Tip: Tick <strong>RFI</strong> on any panels to build a WhatsApp RFI list</span>`}
+      ${selectedRfiPanelIds.size > 0 ? `<span style="color:#B45309;font-weight:700;">☑ ${selectedRfiPanelIds.size} panel${selectedRfiPanelIds.size===1?'':'s'} selected for invitation</span>` : `<span style="color:var(--slate-400);">Tip: Tick the checkboxes on panels to create a WhatsApp ITP invitation</span>`}
     </div>
     ${gridHtml}
     ${filtered.length > visibleLimit ? `
@@ -1397,12 +1437,10 @@ function renderPanelList(root, day) {
         <option value="M00" ${filterFloor==='M00'?'selected':''}>M00 (Mezzanine)</option>
         <option value="R00" ${filterFloor==='R00'?'selected':''}>R00 (Roof / Roof Feeds)</option>
       </select>
-      <button class="today-filter-btn ${filterItpStatus==='TODAY'?'active':''}" onclick="filterItpStatus=(filterItpStatus==='TODAY'?'ALL':'TODAY');visibleLimit=48;render();">⚡ Today's ITP (${dayPanels.filter(isPanelItpToday).length})</button>
-      <button class="rfi-builder-btn" onclick="openWaRfiModal()">📋 Create RFI (${selectedRfiPanelIds.size})</button>
-      ${selectedRfiPanelIds.size > 0 ? `<button class="btn btn-outline btn-sm" onclick="clearRfiSelection()" title="Clear ticked panels">✕ Clear</button>` : ""}
+      <button class="today-filter-btn ${filterItpStatus==='TODAY'?'active':''}" onclick="filterItpStatus=(filterItpStatus==='TODAY'?'ALL':'TODAY');visibleLimit=48;render();">⚡ Ready for ITP (${dayPanels.filter(isPanelItpToday).length})</button>
       <select class="select-filter" onchange="filterItpStatus=this.value;visibleLimit=48;render();">
         <option value="ALL" ${filterItpStatus==='ALL'?'selected':''}>All Status</option>
-        <option value="TODAY" ${filterItpStatus==='TODAY'?'selected':''}>⚡ Today's ITP</option>
+        <option value="TODAY" ${filterItpStatus==='TODAY'?'selected':''}>⚡ Ready for ITP</option>
         <option value="DONE" ${filterItpStatus==='DONE'?'selected':''}>✅ All ITP Done</option>
         <option value="INPROG" ${filterItpStatus==='INPROG'?'selected':''}>🟡 In Progress</option>
         <option value="PENDING" ${filterItpStatus==='PENDING'?'selected':''}>⏳ Pending</option>
@@ -1436,7 +1474,7 @@ function renderPanelDetail(root, panelId) {
     <div style="margin-bottom:10px;display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
       <button class="btn btn-outline btn-sm" onclick="selectedPanelId=null;render();">← Back to ${p.day === "DAY1" ? "Day 1" : "Day 2"} Panels</button>
       <div style="display:flex;gap:6px;flex-wrap:wrap;">
-        <button class="btn btn-sm admin-only ${isPanelItpToday(p) ? 'btn-primary' : 'btn-outline'}" onclick="togglePanelItpToday('${esc(p.id)}')">${isPanelItpToday(p) ? '⚡ Undergoing ITP Today ✓' : '📅 Mark as Today\'s ITP'}</button>
+        <button class="btn btn-sm admin-only ${isPanelItpToday(p) ? 'btn-primary' : 'btn-outline'}" onclick="togglePanelItpToday('${esc(p.id)}')">${isPanelItpToday(p) ? '⚡ Ready for ITP ✓' : '⚡ Mark Ready for ITP'}</button>
         <button class="btn btn-emerald btn-sm admin-only" onclick="markAllOutgoings('${esc(p.id)}', true)">✓ Mark All ITP Done</button>
         <button class="btn btn-outline btn-sm admin-only" onclick="openPanelModal('${esc(p.id)}')">✏ Edit Panel / RFI</button>
         <button class="btn btn-danger btn-sm admin-only" onclick="deletePanel('${esc(p.id)}')">🗑 Delete</button>
@@ -1723,10 +1761,14 @@ function toggleOutgoingItp(panelId, outId) {
   const o = p && p.outgoings.find(x => x.id === outId);
   if (!o) return;
   o.itpDone = !o.itpDone;
+  const st = getPanelStats(p);
+  if (st.allDone) {
+    p.readyForItp = false;
+    p.itpTodayDate = "";
+  }
   saveState();
   render();
-  const st = getPanelStats(p);
-  toast(st.allDone ? "🎉 All outgoings ITP Done! Panel turned Green." : (o.itpDone ? "Marked ITP Done" : "Marked Pending"));
+  toast(st.allDone ? "🎉 All outgoings ITP Done! Auto-cleared from Ready for ITP." : (o.itpDone ? "Marked ITP Done" : "Marked Pending"));
 }
 
 function markAllOutgoings(panelId, val) {
@@ -1734,9 +1776,13 @@ function markAllOutgoings(panelId, val) {
   const p = state.panels.find(x => x.id === panelId);
   if (!p) return;
   (p.outgoings || []).forEach(o => { o.itpDone = val; });
+  if (val) {
+    p.readyForItp = false;
+    p.itpTodayDate = "";
+  }
   saveState();
   render();
-  toast("All outgoings marked ITP Done!");
+  toast(val ? "🎉 All outgoings ITP Done! Auto-cleared from Ready for ITP." : "All outgoings marked Pending.");
 }
 
 function openPanelModal(editId) {
