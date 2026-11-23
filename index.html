@@ -170,14 +170,66 @@
       border-left: 5px solid #059669;
     }
     .panel-card.status-today {
-      border: 1.5px solid #D97706;
-      border-left: 5px solid #D97706;
-      box-shadow: 0 4px 14px rgba(217, 119, 6, 0.14);
+      background: linear-gradient(135deg, #FFFBEB 0%, #FEF3C7 100%);
+      border: 2px solid #D97706;
+      border-left: 6px solid #D97706;
+      box-shadow: 0 6px 18px rgba(217, 119, 6, 0.18);
+      padding-top: 0;
+      overflow: hidden;
     }
-    .chip-today {
-      background: #D97706; color: #fff; font-weight: 800;
-      display: inline-flex; align-items: center; gap: 3px;
+    .today-strip {
+      margin: 0 -13px 6px -13px;
+      padding: 5px 13px;
+      background: #D97706;
+      color: #fff;
+      font-size: 10.5px;
+      font-weight: 800;
+      letter-spacing: 0.5px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
     }
+    .chip.chip-today, .chip.chip-ongoing {
+      background: #B45309; color: #fff; font-weight: 800;
+      display: inline-flex; align-items: center; gap: 5px;
+      box-shadow: 0 2px 6px rgba(180, 83, 9, 0.25);
+    }
+    .live-dot-pulse {
+      width: 7px; height: 7px; border-radius: 50%; background: #FDE68A;
+      animation: livePulse 1.4s infinite;
+    }
+    @keyframes livePulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.4; transform: scale(1.35); }
+    }
+    .section-divider {
+      display: flex; align-items: center; gap: 8px;
+      font-size: 12px; font-weight: 800; color: var(--navy);
+      text-transform: uppercase; letter-spacing: 0.5px;
+      margin: 14px 0 10px;
+    }
+    .section-divider::after {
+      content: ""; flex: 1; height: 1px; background: var(--slate-200);
+    }
+    .section-divider.today-div { color: #B45309; margin-top: 4px; }
+    .section-divider.today-div::after { background: #FCD34D; }
+    .rfi-tick-wrap {
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 3px 8px; border-radius: 8px; border: 1px solid var(--slate-200);
+      background: #fff; font-size: 11px; font-weight: 700; color: var(--slate-600);
+      cursor: pointer; user-select: none;
+    }
+    .rfi-tick-wrap.ticked {
+      background: var(--navy); color: #FDE68A; border-color: var(--navy);
+    }
+    .rfi-tick-wrap input { margin: 0; accent-color: #D97706; cursor: pointer; }
+    .rfi-builder-btn {
+      border: 1.5px solid var(--navy); background: var(--navy); color: #FDE68A;
+      border-radius: 12px; padding: 9px 13px; font-size: 12.5px; font-weight: 800;
+      cursor: pointer; display: inline-flex; align-items: center; gap: 5px;
+      white-space: nowrap; transition: 0.15s;
+    }
+    .rfi-builder-btn:hover { background: #2B3036; }
     .today-filter-btn {
       border: 1.5px solid #D97706; background: #FFFBEB; color: #B45309;
       border-radius: 12px; padding: 9px 12px; font-size: 12.5px; font-weight: 800;
@@ -344,7 +396,7 @@
         <h1>Dagang Jati T&amp;C Hub</h1>
         <div class="brand-sub">
           <span class="proj-tag">JDC 3.1 • LV</span>
-          <span class="badge-live"><span class="dot"></span><span id="backendBadge">Standalone</span> • v3.8</span>
+          <span class="badge-live"><span class="dot"></span><span id="backendBadge">Standalone</span> • v3.9</span>
         </div>
       </div>
     </div>
@@ -367,7 +419,7 @@
   <div id="appRoot"></div>
 
   <div class="footer-note">
-    Dagang Jati Sdn. Bhd. • T&amp;C Department (LV Discipline) • Build v3.8 • Static GitHub Pages PWA
+    Dagang Jati Sdn. Bhd. • T&amp;C Department (LV Discipline) • Build v3.9 • Static GitHub Pages PWA
   </div>
 </main>
 
@@ -658,6 +710,41 @@
   </div>
 </div>
 
+<!-- WhatsApp RFI List Builder Modal -->
+<div class="modal-backdrop" id="waRfiModal">
+  <div class="modal">
+    <h3>📋 Create WhatsApp RFI List</h3>
+    <p style="font-size:12px;color:var(--slate-600);margin-top:0;">Choose the inspection date, time, and location, then copy straight to WhatsApp.</p>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Inspection Date</label>
+        <input type="date" id="waRfiDate" oninput="updateWaRfiPreview()" />
+        <div style="display:flex;gap:6px;margin-top:5px;">
+          <button type="button" class="btn btn-outline btn-xs" onclick="setWaRfiDateOffset(0)">Today</button>
+          <button type="button" class="btn btn-outline btn-xs" onclick="setWaRfiDateOffset(1)">Tomorrow</button>
+          <button type="button" class="btn btn-outline btn-xs" onclick="setWaRfiDateOffset(2)">+2 Days</button>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Inspection Time</label>
+        <input type="text" id="waRfiTime" value="10:00 AM" placeholder="e.g. 10:00 AM / 2:30 PM" oninput="updateWaRfiPreview()" />
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Location (Auto-trimmed from Panel Tags — Editable)</label>
+      <input type="text" id="waRfiLocation" oninput="updateWaRfiPreview()" />
+    </div>
+    <div class="form-group">
+      <label>WhatsApp Message Preview</label>
+      <textarea id="waRfiPreview" rows="15" style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;line-height:1.45;background:#F8F9FA;"></textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeModal('waRfiModal')">Close</button>
+      <button class="btn btn-emerald" onclick="copyWaRfiToClipboard()">📋 Copy for WhatsApp</button>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script>
@@ -847,7 +934,8 @@ let detailSearch = "";
 let searchQuery = "";
 let filterSystem = "ALL";
 let filterFloor = "ALL";
-let filterItpStatus = "ALL"; // ALL | DONE | INPROG | PENDING
+let filterItpStatus = "ALL"; // ALL | TODAY | DONE | INPROG | PENDING
+let selectedRfiPanelIds = new Set();
 let rfiCompFilter = "ALL";
 let rfiStatusFilter = "ALL";
 let visibleLimit = 48;
@@ -1031,6 +1119,111 @@ function render() {
   }
 }
 
+
+function extractRoomLocation(panelName) {
+  const s = String(panelName || "").trim().toUpperCase();
+  // Match floor + room + room number, e.g. F00-MELEC-01, F01-UPS-22, F00-LV-01B, F01-CHP-01
+  const m = s.match(/((?:F\d{2}|M\d{2}|R\d{2})-[A-Z0-9/]+-[A-Z0-9]+)/);
+  if (m) return m[1];
+  const parts = s.split("-").filter(Boolean);
+  if (parts.length >= 4) return parts.slice(2, 5).join("-");
+  return s;
+}
+
+function toggleRfiSelect(panelId, ev) {
+  if (ev) ev.stopPropagation();
+  if (selectedRfiPanelIds.has(panelId)) selectedRfiPanelIds.delete(panelId);
+  else selectedRfiPanelIds.add(panelId);
+  render();
+}
+
+function clearRfiSelection() {
+  selectedRfiPanelIds.clear();
+  render();
+}
+
+function formatWaDateWithDay(isoDateStr) {
+  if (!isoDateStr) return "";
+  const parts = isoDateStr.split("-");
+  if (parts.length !== 3) return isoDateStr;
+  const d = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
+  const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+  const dayName = days[d.getDay()] || "";
+  return `${parts[2]}/${parts[1]}/${parts[0]} (${dayName})`;
+}
+
+function setWaRfiDateOffset(offsetDays) {
+  const d = new Date();
+  d.setDate(d.getDate() + offsetDays);
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  const el = document.getElementById("waRfiDate");
+  if (el) el.value = `${y}-${m}-${day}`;
+  updateWaRfiPreview();
+}
+
+function openWaRfiModal() {
+  if (selectedRfiPanelIds.size === 0) {
+    return toast("Tick at least 1 panel first to create an RFI list");
+  }
+  const tickedPanels = state.panels.filter(p => selectedRfiPanelIds.has(p.id));
+  const rooms = [...new Set(tickedPanels.map(p => extractRoomLocation(p.name)).filter(Boolean))];
+  const locEl = document.getElementById("waRfiLocation");
+  if (locEl) locEl.value = rooms.join(", ");
+  const dateEl = document.getElementById("waRfiDate");
+  if (dateEl && !dateEl.value) setWaRfiDateOffset(0);
+  else updateWaRfiPreview();
+  document.getElementById("waRfiModal").classList.add("open");
+}
+
+function updateWaRfiPreview() {
+  const tickedPanels = state.panels.filter(p => selectedRfiPanelIds.has(p.id));
+  const panelLines = tickedPanels.map(p => p.name).join("\n");
+  const dateVal = formatWaDateWithDay(document.getElementById("waRfiDate")?.value || getLocalDateStr());
+  const timeVal = (document.getElementById("waRfiTime")?.value || "").trim();
+  const locVal = (document.getElementById("waRfiLocation")?.value || "").trim();
+
+  const msg = `REQUEST FOR INSPECTION
+Company: DAGANG JATI SDN BHD
+
+RFI Number: 
+-
+              
+RFI Type:
+LV CABLE TESTING
+
+RFI Description: 
+LV CABLE TESTING 
+${panelLines}
+
+Date: ${dateVal}
+Time: ${timeVal}
+Location:  ${locVal}
+
+Attendees:
+YTL: 
+Greation :  
+DJSB:  `;
+
+  const prev = document.getElementById("waRfiPreview");
+  if (prev) prev.value = msg;
+}
+
+async function copyWaRfiToClipboard() {
+  const prev = document.getElementById("waRfiPreview");
+  const text = prev ? prev.value : "";
+  if (!text) return;
+  try {
+    await navigator.clipboard.writeText(text);
+    toast("✅ Copied RFI to clipboard — ready to paste in WhatsApp!");
+  } catch (e) {
+    prev.select();
+    document.execCommand("copy");
+    toast("✅ Copied RFI to clipboard — ready to paste in WhatsApp!");
+  }
+}
+
 function getLocalDateStr() {
   const d = new Date();
   const y = d.getFullYear();
@@ -1084,52 +1277,80 @@ function getFilteredDayPanels(day) {
   return list.sort((a, b) => (isPanelItpToday(b) ? 1 : 0) - (isPanelItpToday(a) ? 1 : 0));
 }
 
+function renderSinglePanelCard(p) {
+  const st = getPanelStats(p);
+  const dwgCount = (p.dwgs || []).length;
+  const fl = extractFloorFromTag(p.name);
+  const hasRoof = (p.outgoings || []).some(o => extractFloorFromTag(o.outgoing) === "R00");
+  const isToday = isPanelItpToday(p);
+  const isTicked = selectedRfiPanelIds.has(p.id);
+  const cardCls = (st.allDone ? "status-done" : (st.done > 0 ? "status-progress" : "")) + (isToday ? " status-today" : "");
+
+  const badge = st.allDone
+    ? `<span class="chip chip-green">✓ ALL ITP DONE</span>`
+    : (isToday
+        ? `<span class="chip chip-ongoing"><span class="live-dot-pulse"></span>ONGOING ITP</span>`
+        : (st.done > 0 ? `<span class="chip chip-blue">${st.done}/${st.total} Done</span>` : `<span class="chip chip-amber">Pending</span>`));
+
+  return `
+    <div class="panel-card ${cardCls}" onclick="openPanelDetail('${esc(p.id)}')">
+      ${isToday ? `<div class="today-strip"><span>⚡ ONGOING ITP TODAY</span><span>${st.done}/${st.total} Done</span></div>` : ""}
+      <div class="panel-head">
+        <div class="panel-title">⚡ ${esc(p.name)}</div>
+        ${badge}
+      </div>
+      <div class="chip-row">
+        ${fl ? `<span class="chip chip-blue">🏢 ${fl}</span>` : ""}
+        ${hasRoof ? `<span class="chip chip-amber">🏠 R00 Feed</span>` : ""}
+        ${p.rfiNo ? `<span class="chip chip-purple">📋 ${esc(p.rfiNo)}</span>` : ""}
+        ${(p.systems || []).slice(0, 3).map(s => `<span class="chip">${esc(s)}</span>`).join("")}
+        ${(p.systems || []).length > 3 ? `<span class="chip">+${p.systems.length - 3}</span>` : ""}
+      </div>
+      <div class="prog-wrap"><div class="prog-bar" style="width:${st.pct}%"></div></div>
+      <div class="panel-foot">
+        <span>🔌 <strong>${st.done}/${st.total}</strong> Outgoings</span>
+        <div style="display:flex;align-items:center;gap:6px;">
+          <label class="rfi-tick-wrap ${isTicked ? 'ticked' : ''}" onclick="toggleRfiSelect('${esc(p.id)}', event)" title="Tick to include in WhatsApp RFI list">
+            <input type="checkbox" ${isTicked ? 'checked' : ''} onclick="event.stopPropagation();toggleRfiSelect('${esc(p.id)}', event);" />
+            RFI
+          </label>
+          <button class="btn btn-xs admin-only ${isToday ? 'btn-primary' : 'btn-outline'}" onclick="togglePanelItpToday('${esc(p.id)}', event)">${isToday ? '⚡ Ongoing ✓' : '📅 Today ITP'}</button>
+          <span>📄 <strong>${dwgCount}</strong></span>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
 function buildPanelListResultsHtml(day) {
   const filtered = getFilteredDayPanels(day);
   const shown = filtered.slice(0, visibleLimit);
+  const todayCards = shown.filter(isPanelItpToday);
+  const otherCards = shown.filter(p => !isPanelItpToday(p));
+
+  let gridHtml = "";
+  if (!shown.length) {
+    gridHtml = `<div style="text-align:center;padding:36px;color:var(--slate-400);background:#fff;border-radius:14px;border:1px solid var(--slate-200);">No panels match your filter.</div>`;
+  } else if (todayCards.length > 0 && otherCards.length > 0) {
+    gridHtml = `
+      <div class="section-divider today-div">⚡ Ongoing ITP Today (${todayCards.length})</div>
+      <div class="panel-grid">${todayCards.map(renderSinglePanelCard).join("")}</div>
+      <div class="section-divider">All Other Panels (${otherCards.length} shown)</div>
+      <div class="panel-grid">${otherCards.map(renderSinglePanelCard).join("")}</div>
+    `;
+  } else {
+    gridHtml = `
+      ${todayCards.length > 0 ? `<div class="section-divider today-div">⚡ Ongoing ITP Today (${todayCards.length})</div>` : ""}
+      <div class="panel-grid">${shown.map(renderSinglePanelCard).join("")}</div>
+    `;
+  }
+
   return `
-    <div style="font-size:12px;color:var(--slate-600);margin-bottom:10px;">
-      Showing <strong>${shown.length}</strong> of <strong>${filtered.length}</strong> panels
+    <div style="font-size:12px;color:var(--slate-600);margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;">
+      <span>Showing <strong>${shown.length}</strong> of <strong>${filtered.length}</strong> panels</span>
+      ${selectedRfiPanelIds.size > 0 ? `<span style="color:#B45309;font-weight:700;">☑ ${selectedRfiPanelIds.size} panel${selectedRfiPanelIds.size===1?'':'s'} ticked for RFI</span>` : `<span style="color:var(--slate-400);">Tip: Tick <strong>RFI</strong> on any panels to build a WhatsApp RFI list</span>`}
     </div>
-
-    <div class="panel-grid">
-      ${shown.length ? shown.map(p => {
-        const st = getPanelStats(p);
-        const dwgCount = (p.dwgs || []).length;
-        const fl = extractFloorFromTag(p.name);
-        const hasRoof = (p.outgoings || []).some(o => extractFloorFromTag(o.outgoing) === "R00");
-        const isToday = isPanelItpToday(p);
-        const cardCls = (st.allDone ? "status-done" : (st.done > 0 ? "status-progress" : "")) + (isToday ? " status-today" : "");
-        const badge = st.allDone
-          ? `<span class="chip chip-green">✓ ALL ITP DONE</span>`
-          : (st.done > 0 ? `<span class="chip chip-blue">${st.done}/${st.total} Done</span>` : `<span class="chip chip-amber">Pending</span>`);
-        return `
-          <div class="panel-card ${cardCls}" onclick="openPanelDetail('${esc(p.id)}')">
-            <div class="panel-head">
-              <div class="panel-title">⚡ ${esc(p.name)}</div>
-              ${badge}
-            </div>
-            <div class="chip-row">
-              ${isToday ? `<span class="chip chip-today">⚡ ITP TODAY</span>` : ""}
-              ${fl ? `<span class="chip chip-blue">🏢 ${fl}</span>` : ""}
-              ${hasRoof ? `<span class="chip chip-amber">🏠 R00 Feed</span>` : ""}
-              ${p.rfiNo ? `<span class="chip chip-purple">📋 ${esc(p.rfiNo)}</span>` : ""}
-              ${(p.systems || []).slice(0, 3).map(s => `<span class="chip">${esc(s)}</span>`).join("")}
-              ${(p.systems || []).length > 3 ? `<span class="chip">+${p.systems.length - 3}</span>` : ""}
-            </div>
-            <div class="prog-wrap"><div class="prog-bar" style="width:${st.pct}%"></div></div>
-            <div class="panel-foot">
-              <span>🔌 <strong>${st.done}/${st.total}</strong> Outgoings</span>
-              <div style="display:flex;align-items:center;gap:8px;">
-                <button class="btn btn-xs admin-only ${isToday ? 'btn-primary' : 'btn-outline'}" onclick="togglePanelItpToday('${esc(p.id)}', event)">${isToday ? '⚡ ITP Today ✓' : '📅 Today ITP'}</button>
-                <span>📄 <strong>${dwgCount}</strong> PDF${dwgCount===1?'':'s'}</span>
-              </div>
-            </div>
-          </div>
-        `;
-      }).join("") : `<div style="grid-column:1/-1;text-align:center;padding:36px;color:var(--slate-400);background:#fff;border-radius:14px;border:1px solid var(--slate-200);">No panels match your filter.</div>`}
-    </div>
-
+    ${gridHtml}
     ${filtered.length > visibleLimit ? `
       <div style="text-align:center;margin-top:16px;">
         <button class="btn btn-outline" onclick="visibleLimit+=60;updatePanelListResults();">Load More Panels (${filtered.length - visibleLimit} remaining)</button>
@@ -1177,6 +1398,8 @@ function renderPanelList(root, day) {
         <option value="R00" ${filterFloor==='R00'?'selected':''}>R00 (Roof / Roof Feeds)</option>
       </select>
       <button class="today-filter-btn ${filterItpStatus==='TODAY'?'active':''}" onclick="filterItpStatus=(filterItpStatus==='TODAY'?'ALL':'TODAY');visibleLimit=48;render();">⚡ Today's ITP (${dayPanels.filter(isPanelItpToday).length})</button>
+      <button class="rfi-builder-btn" onclick="openWaRfiModal()">📋 Create RFI (${selectedRfiPanelIds.size})</button>
+      ${selectedRfiPanelIds.size > 0 ? `<button class="btn btn-outline btn-sm" onclick="clearRfiSelection()" title="Clear ticked panels">✕ Clear</button>` : ""}
       <select class="select-filter" onchange="filterItpStatus=this.value;visibleLimit=48;render();">
         <option value="ALL" ${filterItpStatus==='ALL'?'selected':''}>All Status</option>
         <option value="TODAY" ${filterItpStatus==='TODAY'?'selected':''}>⚡ Today's ITP</option>
