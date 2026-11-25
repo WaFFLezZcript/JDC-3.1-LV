@@ -361,6 +361,7 @@
       position: fixed; inset: 0; background: rgba(20,23,26,0.62); z-index: 80;
       display: none; align-items: center; justify-content: center; padding: 14px;
     }
+    #pdfViewerModal { z-index: 120; }
     .modal-backdrop.open { display: flex; }
     .modal {
       background: #fff; border-radius: 16px; width: 100%; max-width: 560px; max-height: 90vh;
@@ -470,7 +471,7 @@
         <h1>Dagang Jati T&amp;C Hub</h1>
         <div class="brand-sub">
           <span class="proj-tag">JDC 3.1 • LV</span>
-          <span class="badge-live"><span class="dot"></span><span id="backendBadge">Standalone</span> • v4.3</span>
+          <span class="badge-live"><span class="dot"></span><span id="backendBadge">Standalone</span> • v4.4</span>
         </div>
       </div>
     </div>
@@ -493,7 +494,7 @@
   <div id="appRoot"></div>
 
   <div class="footer-note">
-    Dagang Jati Sdn. Bhd. • T&amp;C Department (LV Discipline) • Build v4.3 • Static GitHub Pages PWA
+    Dagang Jati Sdn. Bhd. • T&amp;C Department (LV Discipline) • Build v4.4 • Static GitHub Pages PWA
   </div>
 </main>
 
@@ -661,6 +662,16 @@
     <div class="form-group">
       <label>Outgoing</label>
       <input type="text" id="outDest" placeholder="e.g. JDC3-EW-F01-ROOF-01-LCWPCP-C03" />
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Circuit No. (Col F)</label>
+        <input type="text" id="outCircuitNo" placeholder="e.g. RYB1 or -" />
+      </div>
+      <div class="form-group">
+        <label>Breaker Rating (A) (Col G)</label>
+        <input type="text" id="outRating" placeholder="e.g. 63 or -" />
+      </div>
     </div>
     <div class="form-row">
       <div class="form-group">
@@ -915,10 +926,13 @@
 
     <div id="irPanelsContainer"></div>
 
-    <div class="modal-actions" style="flex-wrap:wrap;">
-      <button class="btn btn-outline" onclick="closeModal('irFormModal')">Cancel</button>
-      <button class="btn btn-primary" id="btnPreviewIrPdf" onclick="generateIrPdf('preview')">👁 Preview PDF</button>
-      <button class="btn btn-emerald" id="btnGenerateIrPdf" onclick="generateIrPdf('download')">⬇ Download PDF</button>
+    <div class="modal-actions" style="flex-wrap:wrap;justify-content:space-between;">
+      <button class="btn btn-navy btn-sm admin-only" onclick="saveIrOverridesToPanels()" title="Save your edited Circuit Nos &amp; Ratings back to each panel">💾 Save Ckt/Amp to Panel</button>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-left:auto;">
+        <button class="btn btn-outline" onclick="closeModal('irFormModal')">Cancel</button>
+        <button class="btn btn-primary" id="btnPreviewIrPdf" onclick="generateIrPdf('preview')">👁 Preview PDF</button>
+        <button class="btn btn-emerald" id="btnGenerateIrPdf" onclick="generateIrPdf('download')">⬇ Download PDF</button>
+      </div>
     </div>
   </div>
 </div>
@@ -1112,6 +1126,8 @@ function sanitizeState(st) {
       o.pNos = pNorm.nos; o.pSize = pNorm.size;
       o.eNos = eNorm.nos; o.eSize = eNorm.size;
       if (typeof o.itpDone !== "boolean") o.itpDone = (Number(o.itpStage) >= 6) || false;
+      o.circuitNo = String(o.circuitNo || "").trim() || "-";
+      o.rating = String(o.rating || "").trim() || "-";
       if (!o.id || seenIds.has(o.id)) {
         let candidate = p.id + "-O" + seq;
         while (seenIds.has(candidate)) { seq++; candidate = p.id + "-O" + seq; }
@@ -1732,6 +1748,8 @@ function buildOutgoingsResultsHtml(p) {
               <tr>
                 <th style="width:34px;">#</th>
                 <th>Outgoing</th>
+                <th style="width:74px;">Ckt No.</th>
+                <th style="width:72px;">Rating</th>
                 <th>${isSignalSystem(sys) ? "Signal Cable" : "Power Cable"}</th>
                 <th>Earth Cable</th>
                 <th style="width:110px;">ITP Status</th>
@@ -1743,6 +1761,8 @@ function buildOutgoingsResultsHtml(p) {
                 <tr class="${o.itpDone ? 'row-done' : ''}">
                   <td style="color:var(--slate-400);font-weight:700;">${idx + 1}</td>
                   <td class="out-cell-name">${esc(o.outgoing)}</td>
+                  <td style="font-weight:700;color:var(--navy);white-space:nowrap;">${o.circuitNo && o.circuitNo !== '-' ? `<span class="chip chip-purple">${esc(o.circuitNo)}</span>` : `<span style="color:var(--slate-400);">-</span>`}</td>
+                  <td style="font-weight:700;color:var(--navy);white-space:nowrap;">${o.rating && o.rating !== '-' ? `<span class="chip chip-blue">${esc(o.rating)}${/^\d+$/.test(String(o.rating).trim()) ? 'A' : ''}</span>` : `<span style="color:var(--slate-400);">-</span>`}</td>
                   <td class="cable-inline">${o.pSize && o.pSize !== '-' ? `<span class="cable-qty">${esc(o.pNos)}×</span>${esc(o.pSize)}` : `<span style="color:var(--slate-400);">—</span>`}</td>
                   <td class="cable-inline">${o.eSize && o.eSize !== '-' ? `<span class="cable-qty cable-qty-e">${esc(o.eNos)}×</span>${esc(o.eSize)}` : `<span style="color:var(--slate-400);">—</span>`}</td>
                   <td>
@@ -2032,6 +2052,8 @@ function openOutgoingModal(panelId, editId) {
     document.getElementById("outModalTitle").textContent = "Edit Outgoing";
     document.getElementById("outSystem").value = o.system || "";
     document.getElementById("outDest").value = o.outgoing || "";
+    document.getElementById("outCircuitNo").value = (o.circuitNo && o.circuitNo !== "-") ? o.circuitNo : "";
+    document.getElementById("outRating").value = (o.rating && o.rating !== "-") ? o.rating : "";
     document.getElementById("outPNos").value = o.pNos || "";
     document.getElementById("outPSize").value = o.pSize || "";
     document.getElementById("outENos").value = o.eNos || "";
@@ -2039,7 +2061,7 @@ function openOutgoingModal(panelId, editId) {
   } else {
     document.getElementById("outModalTitle").textContent = "Add Outgoing";
     document.getElementById("outSystem").value = (p.systems && p.systems[0]) || "";
-    ["outDest","outPNos","outPSize","outENos","outESize"].forEach(id => document.getElementById(id).value = "");
+    ["outDest","outCircuitNo","outRating","outPNos","outPSize","outENos","outESize"].forEach(id => document.getElementById(id).value = "");
   }
   openModal("outgoingModal");
 }
@@ -2055,6 +2077,8 @@ function saveOutgoing() {
 
   const payload = {
     system: sys, outgoing,
+    circuitNo: document.getElementById("outCircuitNo").value.trim() || "-",
+    rating: document.getElementById("outRating").value.trim().replace(/^(\d+(?:\.\d+)?)\s*A$/i, "$1") || "-",
     pNos: document.getElementById("outPNos").value.trim() || "-",
     pSize: document.getElementById("outPSize").value.trim() || "-",
     eNos: document.getElementById("outENos").value.trim() || "-",
@@ -2286,7 +2310,7 @@ function importMasterCableXlsx(input) {
           if (!actualName || seenSheets.has(actualName)) return;
           seenSheets.add(actualName);
           const rows = XLSX.utils.sheet_to_json(wb.Sheets[actualName], { header: 1, defval: "" });
-          let incC = 0, outC = 9, pNosC = 12, pSizeC = 13, eNosC = 14, eSizeC = 15, headerRow = 13;
+          let incC = 0, cktC = 5, ampC = 6, outC = 9, pNosC = 12, pSizeC = 13, eNosC = 14, eSizeC = 15, headerRow = 13;
           for (let h = 0; h < Math.min(25, rows.length); h++) {
             const low = (rows[h] || []).map(v => String(v || "").trim().toLowerCase());
             if (low.includes("outgoing")) {
@@ -2300,6 +2324,16 @@ function importMasterCableXlsx(input) {
               else if (nocs.length === 1) { pNosC = nocs[0]; pSizeC = nocs[0] + 1; eNosC = nocs[0] + 2; eSizeC = nocs[0] + 3; }
               break;
             }
+          }
+          function cleanCktCell(v) {
+            const s = String(v == null ? "" : v).trim();
+            if (!s || /^(-|n\/a|nil|none|circuit|breaker|ckt)$/i.test(s)) return "-";
+            return s;
+          }
+          function cleanAmpCell(v) {
+            const s = String(v == null ? "" : v).trim();
+            if (!s || /^(-|n\/a|nil|none|amp|ampere|rating|a)$/i.test(s)) return "-";
+            return s.replace(/^(\d+(?:\.\d+)?)\s*A$/i, "$1");
           }
           let curPanel = "";
           for (let i = headerRow + 1; i < rows.length; i++) {
@@ -2318,6 +2352,9 @@ function importMasterCableXlsx(input) {
             const eSize = String(r[eSizeC] || "").trim();
             if (!curPanel || isGarbageOutgoingRow(outgoing, pNos, pSize, eNos, eSize)) continue;
 
+            const rawCkt = cleanCktCell(r[cktC]);
+            const rawAmp = cleanAmpCell(r[ampC]);
+
             const key = dayLabel + "::" + curPanel;
             if (!freshMap[key]) {
               const prev = existingMap[key];
@@ -2325,6 +2362,8 @@ function importMasterCableXlsx(input) {
                 id: key, name: curPanel, day: dayLabel, systems: [],
                 rfiNo: prev ? (prev.rfiNo || "") : "",
                 remarks: prev ? (prev.remarks || "") : "",
+                readyForItp: prev ? Boolean(prev.readyForItp) : false,
+                itpTodayDate: prev ? (prev.itpTodayDate || "") : "",
                 dwgs: prev ? (prev.dwgs || []) : [],
                 outgoings: []
               };
@@ -2332,9 +2371,13 @@ function importMasterCableXlsx(input) {
             const cleanSys = cleanSystemName(actualName);
             if (!freshMap[key].systems.includes(cleanSys)) freshMap[key].systems.push(cleanSys);
             const prevOut = existingMap[key] && (existingMap[key].outgoings || []).find(x => x.outgoing === outgoing && cleanSystemName(x.system) === cleanSys);
+            const finalCkt = rawCkt !== "-" ? rawCkt : (prevOut && prevOut.circuitNo && prevOut.circuitNo !== "-" ? prevOut.circuitNo : "-");
+            const finalAmp = rawAmp !== "-" ? rawAmp : (prevOut && prevOut.rating && prevOut.rating !== "-" ? prevOut.rating : "-");
             freshMap[key].outgoings.push({
               id: key + "-O" + (freshMap[key].outgoings.length + 1),
               system: cleanSys, outgoing,
+              circuitNo: finalCkt,
+              rating: finalAmp,
               ...(() => { const pn = normalizeCablePair(pNos, pSize); const en = normalizeCablePair(eNos, eSize); return { pNos: pn.nos, pSize: pn.size, eNos: en.nos, eSize: en.size }; })(),
               itpDone: prevOut ? Boolean(prevOut.itpDone) : false
             });
@@ -2744,7 +2787,10 @@ function updateIrTemplateStatus() {
     : "Using built-in YTL IR Form template (F-PR/011-MEP-GEN-007)";
 }
 
-function irAssignDefaultOverrides(forceReset) {
+function irAssignDefaultOverrides(mode) {
+  // mode: "fromStored" (default on open — uses Col F/G saved on outgoing, or "-"),
+  //       "applyDefaults" (when user clicks Apply to All),
+  //       "fillMissing" (only populate missing entries)
   const prefix = (document.getElementById("irCircuitPrefix")?.value || "RYB").trim();
   const defRating = (document.getElementById("irRating")?.value || "63").trim();
   let seq = 1;
@@ -2752,8 +2798,13 @@ function irAssignDefaultOverrides(forceReset) {
     const p = state.panels.find(x => x.id === pid);
     if (!p) return;
     (p.outgoings || []).forEach(o => {
-      if (forceReset || !irOutOverrides[o.id]) {
+      if (mode === "applyDefaults") {
         irOutOverrides[o.id] = { circuit: prefix + seq, rating: defRating };
+      } else if (mode === "fromStored" || !irOutOverrides[o.id]) {
+        irOutOverrides[o.id] = {
+          circuit: (o.circuitNo && o.circuitNo !== "-") ? o.circuitNo : "-",
+          rating: (o.rating && o.rating !== "-") ? o.rating : "-"
+        };
       }
       seq++;
     });
@@ -2761,9 +2812,29 @@ function irAssignDefaultOverrides(forceReset) {
 }
 
 function irApplyDefaultsToAll() {
-  irAssignDefaultOverrides(true);
+  irAssignDefaultOverrides("applyDefaults");
   renderIrPanelsList();
   toast("Applied default Circuit Prefix & Rating to all outgoings");
+}
+
+function saveIrOverridesToPanels() {
+  if (!isAdmin) return toast("Unlock Admin Mode to save changes to panels");
+  let count = 0;
+  irPanelOrder.forEach(pid => {
+    const p = state.panels.find(x => x.id === pid);
+    if (!p) return;
+    (p.outgoings || []).forEach(o => {
+      const ov = irOutOverrides[o.id];
+      if (ov) {
+        o.circuitNo = String(ov.circuit || "").trim() || "-";
+        o.rating = String(ov.rating || "").trim().replace(/^(\d+(?:\.\d+)?)\s*A$/i, "$1") || "-";
+        count++;
+      }
+    });
+  });
+  saveState();
+  render();
+  toast(`💾 Saved Circuit No. & Breaker Rating for ${count} outgoings!`);
 }
 
 function irUpdateOverride(outId, field, value) {
@@ -2794,7 +2865,7 @@ function openIrFormModal(panelIds) {
   document.getElementById("irMethod").value = "IR & Continuity Test";
   document.getElementById("irPassCriteria").value = "1M\u03A9";
 
-  irAssignDefaultOverrides(true);
+  irAssignDefaultOverrides("fromStored");
   renderIrPanelsList();
   openModal("irFormModal");
 }
@@ -2846,7 +2917,7 @@ function updateIrPageSummary() {
 function renderIrPanelsList() {
   const box = document.getElementById("irPanelsContainer");
   if (!box) return;
-  irAssignDefaultOverrides(false);
+  irAssignDefaultOverrides("fillMissing");
   box.innerHTML = irPanelOrder.map((pid, idx) => {
     const p = state.panels.find(x => x.id === pid);
     if (!p) return "";
@@ -2858,7 +2929,12 @@ function renderIrPanelsList() {
           <div style="font-size:12.5px;font-weight:800;color:var(--navy);">
             ${idx + 1}. ⚡ ${esc(p.name)} <span class="chip chip-blue">${selCount}/${outs.length}</span>
           </div>
-          <div style="display:flex;gap:4px;align-items:center;">
+          <div style="display:flex;gap:4px;align-items:center;flex-wrap:wrap;">
+            ${(p.dwgs || []).length === 1
+              ? `<button type="button" class="btn btn-primary btn-xs" onclick="previewPdf('${esc(p.dwgs[0].id)}','${esc(p.id)}')" title="Open DWG to cross-check breaker &amp; circuit no.">📄 View DWG</button>`
+              : ((p.dwgs || []).length > 1
+                  ? (p.dwgs || []).map((d, di) => `<button type="button" class="btn btn-primary btn-xs" onclick="previewPdf('${esc(d.id)}','${esc(p.id)}')" title="${esc(d.title)}">📄 DWG ${di+1}</button>`).join("")
+                  : `<span class="chip" style="opacity:0.65;">No DWG</span>`)}
             ${irPanelOrder.length > 1 ? `
               <button type="button" class="btn btn-outline btn-xs" ${idx===0?'disabled':''} onclick="moveIrPanel(${idx}, -1)" title="Move up">▲</button>
               <button type="button" class="btn btn-outline btn-xs" ${idx===irPanelOrder.length-1?'disabled':''} onclick="moveIrPanel(${idx}, 1)" title="Move down">▼</button>
