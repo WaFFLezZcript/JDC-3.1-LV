@@ -439,7 +439,7 @@
       color: var(--navy); background: #fff; text-align: center;
     }
     .ir-mini-in:focus { border-color: #D97706 !important; }
-    /* Built-in Side-by-Side DWG Split Workspace (v4.5) */
+    /* Built-in Side-by-Side DWG Split Workspace (v4.6) */
     .ir-modal-split {
       max-width: 96vw !important; width: 96vw !important;
       height: 92vh !important; max-height: 92vh !important;
@@ -521,7 +521,7 @@
         <h1>Dagang Jati T&amp;C Hub</h1>
         <div class="brand-sub">
           <span class="proj-tag">JDC 3.1 • LV</span>
-          <span class="badge-live"><span class="dot"></span><span id="backendBadge">Standalone</span> • v4.5</span>
+          <span class="badge-live"><span class="dot"></span><span id="backendBadge">Standalone</span> • v4.6</span>
         </div>
       </div>
     </div>
@@ -544,7 +544,7 @@
   <div id="appRoot"></div>
 
   <div class="footer-note">
-    Dagang Jati Sdn. Bhd. • T&amp;C Department (LV Discipline) • Build v4.5 • Static GitHub Pages PWA
+    Dagang Jati Sdn. Bhd. • T&amp;C Department (LV Discipline) • Build v4.6 • Static GitHub Pages PWA
   </div>
 </main>
 
@@ -3151,20 +3151,50 @@ function renderIrPanelsList() {
   updateIrPageSummary();
 }
 
-function wrapPdfTag(text, maxChars) {
-  const s = String(text || "").trim();
-  if (s.length <= maxChars) return [s];
+function wrapPdfByWidth(text, maxWidth, font, size) {
+  const clean = String(text || "").replace(/\s+/g, " ").trim();
+  if (!clean) return [];
+  if (font.widthOfTextAtSize(clean, size) <= maxWidth) return [clean];
+  // Tokenize keeping trailing hyphens/slashes attached, and splitting on spaces
+  const rawTokens = [];
+  clean.split(" ").forEach((word, wi) => {
+    if (wi > 0) rawTokens.push(" ");
+    const parts = word.split(/(?<=[-/])/);
+    parts.forEach(pt => { if (pt) rawTokens.push(pt); });
+  });
   const lines = [];
-  let remaining = s;
-  while (remaining.length > maxChars && lines.length < 2) {
-    let cut = remaining.lastIndexOf("-", maxChars);
-    if (cut < 4) cut = remaining.lastIndexOf(" ", maxChars);
-    if (cut < 4) cut = maxChars;
-    else cut = cut + 1;
-    lines.push(remaining.slice(0, cut).trim());
-    remaining = remaining.slice(cut).trim();
+  let cur = "";
+  function pushCur() {
+    if (cur.trim()) lines.push(cur.trim());
+    cur = "";
   }
-  if (remaining) lines.push(remaining);
+  for (let i = 0; i < rawTokens.length; i++) {
+    const tok = rawTokens[i];
+    if (tok === " " && !cur) continue;
+    const candidate = cur + tok;
+    if (font.widthOfTextAtSize(candidate.trim(), size) <= maxWidth) {
+      cur = candidate;
+    } else {
+      if (cur.trim()) {
+        pushCur();
+        if (tok === " ") continue;
+      }
+      if (font.widthOfTextAtSize(tok.trim(), size) <= maxWidth) {
+        cur = tok.trim();
+      } else {
+        // Hard-split very long unbroken token by character
+        let rem = tok.trim();
+        while (rem) {
+          let k = rem.length;
+          while (k > 1 && font.widthOfTextAtSize(rem.slice(0, k), size) > maxWidth) k--;
+          lines.push(rem.slice(0, k));
+          rem = rem.slice(k);
+        }
+        cur = "";
+      }
+    }
+  }
+  pushCur();
   return lines;
 }
 
@@ -3291,15 +3321,34 @@ async function generateIrPdf(mode) {
 
         drawCentered(page, row.circuit, 39.5, yBase, 5.5, fontBold);
 
-        // TEST POINT FROM (wrapped up to 3 lines, centered at x=87.2)
-        const fromLines = wrapPdfTag(row.from, 16);
-        const fromStart = yBase + ((fromLines.length - 1) * 3.1);
-        fromLines.forEach((ln, li) => drawCentered(page, ln, 87.2, fromStart - (li * 6.2), 5.0, fontBold));
+        function drawFittedCell(text, cx, yCenter, maxW, maxH, maxSz, minSz) {
+          const safe = safeWinAnsi(text);
+          if (!safe) return;
+          let chosenSz = minSz;
+          let chosenLines = [safe];
+          for (let sz = maxSz; sz >= minSz - 0.01; sz -= 0.25) {
+            const lines = wrapPdfByWidth(safe, maxW, fontBold, sz);
+            const lh = sz * 1.18;
+            if (lines.length * lh <= maxH) {
+              chosenSz = sz;
+              chosenLines = lines;
+              break;
+            }
+            if (sz <= minSz + 0.01) {
+              chosenSz = minSz;
+              chosenLines = lines;
+            }
+          }
+          const lh = chosenSz * 1.18;
+          const startY = yCenter + ((chosenLines.length - 1) * lh) / 2;
+          chosenLines.forEach((ln, li) => drawCentered(page, ln, cx, startY - (li * lh), chosenSz, fontBold));
+        }
 
-        // TEST POINT TO (wrapped up to 3 lines, centered at x=141.0)
-        const toLines = wrapPdfTag(row.to, 16);
-        const toStart = yBase + ((toLines.length - 1) * 3.1);
-        toLines.forEach((ln, li) => drawCentered(page, ln, 141.0, toStart - (li * 6.2), 5.0, fontBold));
+        // TEST POINT FROM (auto-wrapped & auto-fitted inside x=60..114.4)
+        drawFittedCell(row.from, 87.2, yBase, 50, 19.2, 5.0, 2.8);
+
+        // TEST POINT TO (auto-wrapped & auto-fitted inside x=114.4..167.6)
+        drawFittedCell(row.to, 141.0, yBase, 49, 19.2, 5.0, 2.8);
 
         drawCentered(page, typePt, 189.2, yBase, 5.5, fontBold);
         drawCentered(page, pwrSup, 236.3, yBase, 5.5, fontBold);
@@ -3315,7 +3364,8 @@ async function generateIrPdf(mode) {
     activeIrPdfBlobUrl = URL.createObjectURL(blob);
 
     const firstPanel = state.panels.find(p => p.id === irPanelOrder[0]);
-    const fileName = [rfiNo || "IR_FORM", irPanelOrder.length === 1 && firstPanel ? firstPanel.name : `${irPanelOrder.length}_PANELS`].join(" - ").replace(/[\\/:*?"<>|]/g, "_") + ".pdf";
+    const panelFallback = irPanelOrder.length === 1 && firstPanel ? firstPanel.name : `${irPanelOrder.length}_PANELS`;
+    const fileName = (rfiNo ? rfiNo : panelFallback).replace(/[\\/:*?"<>|]/g, "_") + ".pdf";
 
     if (mode === "preview") {
       document.getElementById("pdfViewerTitle").textContent = `IR Form Preview (${totalPages} page${totalPages===1?'':'s'} • ${rows.length} outgoings)`;
