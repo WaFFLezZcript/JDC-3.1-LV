@@ -439,6 +439,56 @@
       color: var(--navy); background: #fff; text-align: center;
     }
     .ir-mini-in:focus { border-color: #D97706 !important; }
+    /* Built-in Side-by-Side DWG Split Workspace (v4.5) */
+    .ir-modal-split {
+      max-width: 96vw !important; width: 96vw !important;
+      height: 92vh !important; max-height: 92vh !important;
+      display: flex !important; flex-direction: column; overflow: hidden !important;
+    }
+    .ir-split-body {
+      display: flex; gap: 14px; flex: 1; min-height: 0; overflow: hidden;
+    }
+    .ir-dwg-pane {
+      display: none; flex: 1; min-width: 0; flex-direction: column;
+      border: 1px solid var(--slate-200); border-radius: 12px; overflow: hidden; background: #F8FAFC;
+    }
+    .ir-modal-split .ir-dwg-pane { display: flex; }
+    .ir-dwg-pane-head {
+      background: #14171A; color: #fff; padding: 7px 10px;
+      display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 12px; font-weight: 700;
+    }
+    .ir-dwg-pane iframe { flex: 1; width: 100%; border: none; background: #fff; }
+    .ir-form-pane { flex: 1; min-width: 0; display: flex; flex-direction: column; overflow-y: auto; padding-right: 2px; }
+    @media (max-width: 900px) {
+      .ir-split-body { flex-direction: column; }
+      .ir-dwg-pane { flex: none; height: 38vh; }
+    }
+
+    /* Panel Detail Side-by-Side DWG Split */
+    .detail-split-wrap {
+      display: grid; grid-template-columns: 1fr; gap: 12px; align-items: start;
+    }
+    .detail-split-wrap.with-dwg {
+      grid-template-columns: minmax(340px, 48%) 1fr;
+    }
+    .detail-dwg-dock {
+      position: sticky; top: 68px; height: calc(100vh - 90px);
+      background: #fff; border: 1.5px solid #D97706; border-radius: var(--radius);
+      overflow: hidden; display: flex; flex-direction: column; box-shadow: 0 8px 24px rgba(20,23,26,0.12);
+    }
+    .detail-dwg-dock iframe { flex: 1; width: 100%; border: none; background: #F8FAFC; }
+    @media (max-width: 960px) {
+      .detail-split-wrap.with-dwg { grid-template-columns: 1fr; }
+      .detail-dwg-dock { position: relative; top: 0; height: 48vh; }
+    }
+
+    /* Inline Quick-Edit Inputs in Panel Table */
+    .tbl-inline-in {
+      width: 68px; padding: 3px 6px; border: 1px solid var(--slate-200);
+      border-radius: 6px; font-size: 11.5px; font-weight: 700; color: var(--navy);
+      background: #fff; text-align: center; outline: none;
+    }
+    .tbl-inline-in:focus { border-color: #D97706; background: #FFFBEB; }
   </style>
 </head>
 <body>
@@ -471,7 +521,7 @@
         <h1>Dagang Jati T&amp;C Hub</h1>
         <div class="brand-sub">
           <span class="proj-tag">JDC 3.1 • LV</span>
-          <span class="badge-live"><span class="dot"></span><span id="backendBadge">Standalone</span> • v4.4</span>
+          <span class="badge-live"><span class="dot"></span><span id="backendBadge">Standalone</span> • v4.5</span>
         </div>
       </div>
     </div>
@@ -494,7 +544,7 @@
   <div id="appRoot"></div>
 
   <div class="footer-note">
-    Dagang Jati Sdn. Bhd. • T&amp;C Department (LV Discipline) • Build v4.4 • Static GitHub Pages PWA
+    Dagang Jati Sdn. Bhd. • T&amp;C Department (LV Discipline) • Build v4.5 • Static GitHub Pages PWA
   </div>
 </main>
 
@@ -842,7 +892,19 @@
 
 <!-- IR Form Generator Modal -->
 <div class="modal-backdrop" id="irFormModal">
-  <div class="modal modal-lg">
+  <div class="modal modal-lg" id="irFormModalBox">
+    <div class="ir-split-body">
+      <div class="ir-dwg-pane" id="irDwgPane">
+        <div class="ir-dwg-pane-head">
+          <span id="irDwgPaneTitle" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">📄 DWG Reference</span>
+          <div style="display:flex;gap:5px;flex-shrink:0;">
+            <a id="irDwgPaneExt" href="#" target="_blank" rel="noopener" class="btn btn-primary btn-xs" style="text-decoration:none;">↗ Tab</a>
+            <button type="button" class="btn btn-outline btn-xs" onclick="closeIrDwgPane()">✕ Close</button>
+          </div>
+        </div>
+        <iframe id="irDwgPaneFrame" allow="autoplay"></iframe>
+      </div>
+      <div class="ir-form-pane">
     <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
       <h3 style="margin:0;">📋 Generate IR &amp; Continuity Test Form (PDF)</h3>
       <span id="irPageSummary" class="chip chip-blue" style="font-size:11.5px;padding:4px 10px;">0 outgoings • 0 pages</span>
@@ -929,11 +991,13 @@
     <div class="modal-actions" style="flex-wrap:wrap;justify-content:space-between;">
       <button class="btn btn-navy btn-sm admin-only" onclick="saveIrOverridesToPanels()" title="Save your edited Circuit Nos &amp; Ratings back to each panel">💾 Save Ckt/Amp to Panel</button>
       <div style="display:flex;gap:8px;flex-wrap:wrap;margin-left:auto;">
-        <button class="btn btn-outline" onclick="closeModal('irFormModal')">Cancel</button>
+        <button class="btn btn-outline" onclick="closeIrDwgPane();closeModal('irFormModal')">Cancel</button>
         <button class="btn btn-primary" id="btnPreviewIrPdf" onclick="generateIrPdf('preview')">👁 Preview PDF</button>
         <button class="btn btn-emerald" id="btnGenerateIrPdf" onclick="generateIrPdf('download')">⬇ Download PDF</button>
       </div>
     </div>
+      </div><!-- /.ir-form-pane -->
+    </div><!-- /.ir-split-body -->
   </div>
 </div>
 
@@ -1149,6 +1213,7 @@ let selectedPanelId = null;
 let detailSubTab = "outgoings";
 let detailSysFilter = "ALL";
 let detailSearch = "";
+let detailSplitDwgId = null; // Side-by-side DWG dock in Panel Detail
 let searchQuery = "";
 let filterSystem = "ALL";
 let filterFloor = "ALL";
@@ -1264,7 +1329,7 @@ function handleAdminButton() {
   }
 }
 
-function verifyPin() {
+async function verifyPin() {
   const entered = document.getElementById("pinInput").value.trim();
   const targetHash = cfg.pinHash || INIT_HASH;
   if (hashPin(entered) === targetHash) {
@@ -1275,8 +1340,16 @@ function verifyPin() {
     btn.classList.add("admin-on");
     btn.textContent = "🔓 Admin Mode";
     closeModal("pinModal");
-    toast("Admin Mode Unlocked");
-    render();
+    if (cfg.backend === "apps_script" && cfg.gasUrl) {
+      toast("🔓 Admin Unlocked — pulling latest cloud data...");
+      await syncFromAppsScript(false);
+    } else if (cfg.backend === "firebase" && cfg.firebaseJson) {
+      toast("🔓 Admin Unlocked — pulling latest cloud data...");
+      await testFirebaseSync(false);
+    } else {
+      toast("Admin Mode Unlocked");
+      render();
+    }
   } else {
     toast("Incorrect passcode");
   }
@@ -1664,8 +1737,31 @@ function openPanelDetail(panelId) {
   detailSubTab = "outgoings";
   detailSysFilter = "ALL";
   detailSearch = "";
+  detailSplitDwgId = null;
   render();
   window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+function toggleDetailSplitDwg(panelId, dwgId) {
+  const p = state.panels.find(x => x.id === panelId);
+  if (!p || !(p.dwgs || []).length) return toast("No DWG attached to this panel yet");
+  if (dwgId) {
+    detailSplitDwgId = (detailSplitDwgId === dwgId) ? null : dwgId;
+  } else {
+    detailSplitDwgId = detailSplitDwgId ? null : p.dwgs[0].id;
+  }
+  render();
+}
+
+function inlineUpdateOutgoingField(panelId, outId, field, value) {
+  if (!isAdmin) return;
+  const p = state.panels.find(x => x.id === panelId);
+  const o = p && (p.outgoings || []).find(x => x.id === outId);
+  if (!o) return;
+  let clean = String(value || "").trim();
+  if (field === "rating") clean = clean.replace(/^(\d+(?:\.\d+)?)\s*A$/i, "$1");
+  o[field] = clean || "-";
+  saveState();
 }
 
 function renderPanelDetail(root, panelId) {
@@ -1677,6 +1773,7 @@ function renderPanelDetail(root, panelId) {
     <div style="margin-bottom:10px;display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
       <button class="btn btn-outline btn-sm" onclick="selectedPanelId=null;render();">← Back to ${p.day === "DAY1" ? "Day 1" : "Day 2"} Panels</button>
       <div style="display:flex;gap:6px;flex-wrap:wrap;">
+        ${(p.dwgs || []).length ? `<button class="btn btn-sm ${detailSplitDwgId ? 'btn-primary' : 'btn-outline'}" onclick="toggleDetailSplitDwg('${esc(p.id)}')">${detailSplitDwgId ? '✕ Close Split DWG' : '📄 Split DWG'}</button>` : ""}
         <button class="btn btn-navy btn-sm" onclick="openIrFormModal(['${esc(p.id)}'])">📋 Generate IR Form</button>
         <button class="btn btn-sm admin-only ${isPanelItpToday(p) ? 'btn-primary' : 'btn-outline'}" onclick="togglePanelItpToday('${esc(p.id)}')">${isPanelItpToday(p) ? '⚡ Ready for ITP ✓' : '⚡ Mark Ready for ITP'}</button>
         <button class="btn btn-emerald btn-sm admin-only" onclick="markAllOutgoings('${esc(p.id)}', true)">✓ Mark All ITP Done</button>
@@ -1713,7 +1810,32 @@ function renderPanelDetail(root, panelId) {
       </div>
     </div>
 
-    ${detailSubTab === "outgoings" ? renderOutgoingsTab(p) : renderDwgsTab(p)}
+    ${(() => {
+      const activeDwg = detailSplitDwgId ? (p.dwgs || []).find(d => d.id === detailSplitDwgId) : null;
+      const mainContent = detailSubTab === "outgoings" ? renderOutgoingsTab(p) : renderDwgsTab(p);
+      if (!activeDwg) return mainContent;
+      const embedSrc = toEmbedUrl(activeDwg.url);
+      return `
+        <div class="detail-split-wrap with-dwg">
+          <div class="detail-dwg-dock">
+            <div class="ir-dwg-pane-head">
+              <span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">📄 ${esc(activeDwg.title)} (${esc(activeDwg.rev || "REV -")})</span>
+              <div style="display:flex;gap:4px;align-items:center;flex-shrink:0;">
+                ${(p.dwgs || []).length > 1 ? `
+                  <select style="font-size:11px;padding:2px 4px;border-radius:6px;border:none;max-width:120px;" onchange="detailSplitDwgId=this.value;render();">
+                    ${(p.dwgs || []).map((d, di) => `<option value="${esc(d.id)}" ${d.id===activeDwg.id?'selected':''}>DWG ${di+1}: ${esc(d.title)}</option>`).join("")}
+                  </select>
+                ` : ""}
+                <a href="${esc(activeDwg.url.startsWith("data:") ? embedSrc : activeDwg.url)}" target="_blank" rel="noopener" class="btn btn-primary btn-xs" style="text-decoration:none;">↗ Tab</a>
+                <button class="btn btn-outline btn-xs" onclick="detailSplitDwgId=null;render();">✕</button>
+              </div>
+            </div>
+            <iframe src="${esc(embedSrc)}" allow="autoplay"></iframe>
+          </div>
+          <div style="min-width:0;">${mainContent}</div>
+        </div>
+      `;
+    })()}
   `;
 }
 
@@ -1761,8 +1883,16 @@ function buildOutgoingsResultsHtml(p) {
                 <tr class="${o.itpDone ? 'row-done' : ''}">
                   <td style="color:var(--slate-400);font-weight:700;">${idx + 1}</td>
                   <td class="out-cell-name">${esc(o.outgoing)}</td>
-                  <td style="font-weight:700;color:var(--navy);white-space:nowrap;">${o.circuitNo && o.circuitNo !== '-' ? `<span class="chip chip-purple">${esc(o.circuitNo)}</span>` : `<span style="color:var(--slate-400);">-</span>`}</td>
-                  <td style="font-weight:700;color:var(--navy);white-space:nowrap;">${o.rating && o.rating !== '-' ? `<span class="chip chip-blue">${esc(o.rating)}${/^\d+$/.test(String(o.rating).trim()) ? 'A' : ''}</span>` : `<span style="color:var(--slate-400);">-</span>`}</td>
+                  <td style="font-weight:700;color:var(--navy);white-space:nowrap;">
+                    ${isAdmin
+                      ? `<input type="text" class="tbl-inline-in" value="${esc(o.circuitNo && o.circuitNo !== '-' ? o.circuitNo : '')}" placeholder="-" onchange="inlineUpdateOutgoingField('${esc(p.id)}','${esc(o.id)}','circuitNo',this.value)" />`
+                      : (o.circuitNo && o.circuitNo !== '-' ? `<span class="chip chip-purple">${esc(o.circuitNo)}</span>` : `<span style="color:var(--slate-400);">-</span>`)}
+                  </td>
+                  <td style="font-weight:700;color:var(--navy);white-space:nowrap;">
+                    ${isAdmin
+                      ? `<input type="text" class="tbl-inline-in" style="width:56px;" value="${esc(o.rating && o.rating !== '-' ? o.rating : '')}" placeholder="-" onchange="inlineUpdateOutgoingField('${esc(p.id)}','${esc(o.id)}','rating',this.value)" />`
+                      : (o.rating && o.rating !== '-' ? `<span class="chip chip-blue">${esc(o.rating)}${/^\d+$/.test(String(o.rating).trim()) ? 'A' : ''}</span>` : `<span style="color:var(--slate-400);">-</span>`)}
+                  </td>
                   <td class="cable-inline">${o.pSize && o.pSize !== '-' ? `<span class="cable-qty">${esc(o.pNos)}×</span>${esc(o.pSize)}` : `<span style="color:var(--slate-400);">—</span>`}</td>
                   <td class="cable-inline">${o.eSize && o.eSize !== '-' ? `<span class="cable-qty cable-qty-e">${esc(o.eNos)}×</span>${esc(o.eSize)}` : `<span style="color:var(--slate-400);">—</span>`}</td>
                   <td>
@@ -2842,6 +2972,57 @@ function irUpdateOverride(outId, field, value) {
   irOutOverrides[outId][field] = value;
 }
 
+function openIrDwgPane(dwgId, panelId) {
+  const p = state.panels.find(x => x.id === panelId);
+  const d = p && (p.dwgs || []).find(x => x.id === dwgId);
+  if (!d || !d.url) return toast("No PDF attached yet.");
+  const embedSrc = toEmbedUrl(d.url);
+  document.getElementById("irDwgPaneTitle").textContent = `📄 ${d.title} (${d.rev || "REV -"})`;
+  document.getElementById("irDwgPaneFrame").src = embedSrc;
+  document.getElementById("irDwgPaneExt").href = d.url.startsWith("data:") ? embedSrc : d.url;
+  document.getElementById("irFormModalBox").classList.add("ir-modal-split");
+}
+
+function closeIrDwgPane() {
+  const box = document.getElementById("irFormModalBox");
+  const fr = document.getElementById("irDwgPaneFrame");
+  if (box) box.classList.remove("ir-modal-split");
+  if (fr) fr.src = "about:blank";
+}
+
+function irCopyRatingDown(panelId) {
+  const p = state.panels.find(x => x.id === panelId);
+  if (!p || !(p.outgoings || []).length) return;
+  let srcRating = "";
+  for (const o of p.outgoings) {
+    const val = String((irOutOverrides[o.id] && irOutOverrides[o.id].rating) || "").trim();
+    if (val && val !== "-") { srcRating = val; break; }
+  }
+  if (!srcRating) srcRating = (document.getElementById("irRating")?.value || "63").trim();
+  p.outgoings.forEach(o => {
+    if (!irOutOverrides[o.id]) irOutOverrides[o.id] = { circuit: "-", rating: srcRating };
+    else irOutOverrides[o.id].rating = srcRating;
+  });
+  renderIrPanelsList();
+  toast(`Copied ${srcRating}A down to all ${p.outgoings.length} outgoings`);
+}
+
+function irQuickSeqPanel(panelId, mode) {
+  const p = state.panels.find(x => x.id === panelId);
+  if (!p || !(p.outgoings || []).length) return;
+  const prefix = (document.getElementById("irCircuitPrefix")?.value || "RYB").trim();
+  const phases = ["R", "Y", "B"];
+  p.outgoings.forEach((o, i) => {
+    const ckt = mode === "ryb"
+      ? phases[i % 3] + (Math.floor(i / 3) + 1)
+      : prefix + (i + 1);
+    if (!irOutOverrides[o.id]) irOutOverrides[o.id] = { circuit: ckt, rating: "-" };
+    else irOutOverrides[o.id].circuit = ckt;
+  });
+  renderIrPanelsList();
+  toast(mode === "ryb" ? "Applied R1/Y1/B1 sequence" : `Applied ${prefix}1… sequence`);
+}
+
 function openIrFormModal(panelIds) {
   const ids = (panelIds || []).filter(id => state.panels.some(p => p.id === id));
   if (!ids.length) return toast("Select at least 1 panel first");
@@ -2867,6 +3048,7 @@ function openIrFormModal(panelIds) {
 
   irAssignDefaultOverrides("fromStored");
   renderIrPanelsList();
+  closeIrDwgPane();
   openModal("irFormModal");
 }
 
@@ -2931,10 +3113,13 @@ function renderIrPanelsList() {
           </div>
           <div style="display:flex;gap:4px;align-items:center;flex-wrap:wrap;">
             ${(p.dwgs || []).length === 1
-              ? `<button type="button" class="btn btn-primary btn-xs" onclick="previewPdf('${esc(p.dwgs[0].id)}','${esc(p.id)}')" title="Open DWG to cross-check breaker &amp; circuit no.">📄 View DWG</button>`
+              ? `<button type="button" class="btn btn-primary btn-xs" onclick="openIrDwgPane('${esc(p.dwgs[0].id)}','${esc(p.id)}')" title="Open DWG side-by-side">📄 View DWG</button>`
               : ((p.dwgs || []).length > 1
-                  ? (p.dwgs || []).map((d, di) => `<button type="button" class="btn btn-primary btn-xs" onclick="previewPdf('${esc(d.id)}','${esc(p.id)}')" title="${esc(d.title)}">📄 DWG ${di+1}</button>`).join("")
+                  ? (p.dwgs || []).map((d, di) => `<button type="button" class="btn btn-primary btn-xs" onclick="openIrDwgPane('${esc(d.id)}','${esc(p.id)}')" title="${esc(d.title)}">📄 DWG ${di+1}</button>`).join("")
                   : `<span class="chip" style="opacity:0.65;">No DWG</span>`)}
+            <button type="button" class="btn btn-outline btn-xs" onclick="irCopyRatingDown('${esc(p.id)}')" title="Copy first rating down to all outgoings in this panel">↓ Copy Amp</button>
+            <button type="button" class="btn btn-outline btn-xs" onclick="irQuickSeqPanel('${esc(p.id)}','prefix')" title="Auto-number RYB1, RYB2... for this panel">1,2,3…</button>
+            <button type="button" class="btn btn-outline btn-xs" onclick="irQuickSeqPanel('${esc(p.id)}','ryb')" title="Auto-number R1, Y1, B1, R2... for this panel">R/Y/B</button>
             ${irPanelOrder.length > 1 ? `
               <button type="button" class="btn btn-outline btn-xs" ${idx===0?'disabled':''} onclick="moveIrPanel(${idx}, -1)" title="Move up">▲</button>
               <button type="button" class="btn btn-outline btn-xs" ${idx===irPanelOrder.length-1?'disabled':''} onclick="moveIrPanel(${idx}, 1)" title="Move down">▼</button>
