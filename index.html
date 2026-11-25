@@ -425,12 +425,19 @@
       display: grid; grid-template-columns: 1fr; gap: 4px;
     }
     .ir-out-row {
-      display: flex; align-items: center; justify-content: space-between; gap: 8px;
-      padding: 5px 8px; border-radius: 8px; border: 1px solid var(--slate-100);
-      font-size: 12px; cursor: pointer; background: #FAFBFD;
+      display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap;
+      padding: 6px 8px; border-radius: 8px; border: 1px solid var(--slate-100);
+      font-size: 12px; background: #FAFBFD;
     }
     .ir-out-row:hover { background: #FFFBEB; }
-    .ir-out-row input { accent-color: #D97706; width: 15px; height: 15px; cursor: pointer; }
+    .ir-out-row input[type="checkbox"] { accent-color: #D97706; width: 15px; height: 15px; cursor: pointer; flex-shrink: 0; }
+    .ir-inline-fields { display: inline-flex; align-items: center; gap: 5px; flex-shrink: 0; flex-wrap: wrap; }
+    .ir-mini-in {
+      padding: 3px 6px !important; border: 1px solid var(--slate-200) !important;
+      border-radius: 6px !important; font-size: 11.5px !important; font-weight: 700;
+      color: var(--navy); background: #fff; text-align: center;
+    }
+    .ir-mini-in:focus { border-color: #D97706 !important; }
   </style>
 </head>
 <body>
@@ -463,7 +470,7 @@
         <h1>Dagang Jati T&amp;C Hub</h1>
         <div class="brand-sub">
           <span class="proj-tag">JDC 3.1 • LV</span>
-          <span class="badge-live"><span class="dot"></span><span id="backendBadge">Standalone</span> • v4.2</span>
+          <span class="badge-live"><span class="dot"></span><span id="backendBadge">Standalone</span> • v4.3</span>
         </div>
       </div>
     </div>
@@ -486,7 +493,7 @@
   <div id="appRoot"></div>
 
   <div class="footer-note">
-    Dagang Jati Sdn. Bhd. • T&amp;C Department (LV Discipline) • Build v4.2 • Static GitHub Pages PWA
+    Dagang Jati Sdn. Bhd. • T&amp;C Department (LV Discipline) • Build v4.3 • Static GitHub Pages PWA
   </div>
 </main>
 
@@ -732,7 +739,8 @@
   <div class="modal modal-lg">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;gap:8px;flex-wrap:wrap;">
       <h3 id="pdfViewerTitle" style="margin:0;">PDF Preview</h3>
-      <div style="display:flex;gap:6px;">
+      <div style="display:flex;gap:6px;flex-wrap:wrap;">
+        <a id="pdfDownloadLink" href="#" download="document.pdf" class="btn btn-emerald btn-sm" style="text-decoration:none;display:none;">⬇ Download PDF</a>
         <a id="pdfExternalLink" href="#" target="_blank" rel="noopener" class="btn btn-primary btn-sm" style="text-decoration:none;">↗ Open in New Tab</a>
         <button class="btn btn-outline btn-sm" onclick="closePdfViewer()">✕ Close</button>
       </div>
@@ -870,10 +878,14 @@
           <input type="text" id="irPassCriteria" value="1MΩ" />
         </div>
       </div>
-      <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-top:4px;">
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(105px,1fr));gap:8px;margin-top:4px;align-items:end;">
         <div class="form-group" style="margin-bottom:0;">
-          <label>Circuit Prefix</label>
+          <label>Default Prefix</label>
           <input type="text" id="irCircuitPrefix" value="RYB" />
+        </div>
+        <div class="form-group" style="margin-bottom:0;">
+          <label>Default Rating (A)</label>
+          <input type="text" id="irRating" value="63" />
         </div>
         <div class="form-group" style="margin-bottom:0;">
           <label>Type of Point</label>
@@ -884,13 +896,10 @@
           <input type="text" id="irPowerSupply" value="500 V" />
         </div>
         <div class="form-group" style="margin-bottom:0;">
-          <label>Rating (A)</label>
-          <input type="text" id="irRating" value="63" />
-        </div>
-        <div class="form-group" style="margin-bottom:0;">
           <label>Polarity/Cont.</label>
           <input type="text" id="irPolarity" value="PASS" />
         </div>
+        <button type="button" class="btn btn-navy btn-sm" style="height:36px;justify-content:center;" onclick="irApplyDefaultsToAll()" title="Re-fill all Circuit Nos & Ratings below">↻ Apply to All</button>
       </div>
     </div>
 
@@ -906,9 +915,10 @@
 
     <div id="irPanelsContainer"></div>
 
-    <div class="modal-actions">
+    <div class="modal-actions" style="flex-wrap:wrap;">
       <button class="btn btn-outline" onclick="closeModal('irFormModal')">Cancel</button>
-      <button class="btn btn-emerald" id="btnGenerateIrPdf" onclick="generateIrPdf()">⬇ Generate IR Form PDF</button>
+      <button class="btn btn-primary" id="btnPreviewIrPdf" onclick="generateIrPdf('preview')">👁 Preview PDF</button>
+      <button class="btn btn-emerald" id="btnGenerateIrPdf" onclick="generateIrPdf('download')">⬇ Download PDF</button>
     </div>
   </div>
 </div>
@@ -1060,13 +1070,27 @@ function mergeMissingFromSeed(st) {
   return st;
 }
 
-// Trim installation method suffixes (e.g. "on ladder trefoil", "in trunking", "on tray", "in conduit")
-function cleanCableSize(s) {
+// Trim installation method suffixes & duplicate leading qty (e.g. "1x ", "4x ") from Excel cable sizes
+function cleanCableSize(s, hasNos) {
   let str = String(s || "").trim();
   if (!str || str === "-") return str || "-";
   str = str.replace(/\s+(on|in)\s+(cable\s+)?(ladder|tray|trunking|conduit|duct|trench|wall|ceiling|trefoil|flat).*$/i, "");
   str = str.replace(/\s+(trefoil|flat\s+formation|clipped\s+direct).*$/i, "");
+  if (hasNos !== false) {
+    str = str.replace(/^\d+\s*[x×]\s*/i, "");
+  }
   return str.trim() || "-";
+}
+
+function normalizeCablePair(nos, size) {
+  let n = String(nos || "").trim();
+  let s = String(size || "").trim();
+  const lead = s.match(/^(\d+)\s*[x×]\s*(.+)$/i);
+  if (lead) {
+    if (!n || n === "-") n = lead[1];
+    s = lead[2].trim();
+  }
+  return { nos: n || "-", size: cleanCableSize(s, true) };
 }
 
 function isSignalSystem(sysName) {
@@ -1083,8 +1107,10 @@ function sanitizeState(st) {
     let seq = 1;
     p.outgoings.forEach(o => {
       if (o.system) o.system = cleanSystemName(o.system);
-      o.pSize = cleanCableSize(o.pSize);
-      o.eSize = cleanCableSize(o.eSize);
+      const pNorm = normalizeCablePair(o.pNos, o.pSize);
+      const eNorm = normalizeCablePair(o.eNos, o.eSize);
+      o.pNos = pNorm.nos; o.pSize = pNorm.size;
+      o.eNos = eNorm.nos; o.eSize = eNorm.size;
       if (typeof o.itpDone !== "boolean") o.itpDone = (Number(o.itpStage) >= 6) || false;
       if (!o.id || seenIds.has(o.id)) {
         let candidate = p.id + "-O" + seq;
@@ -2146,6 +2172,8 @@ function previewPdf(dwgId, panelId) {
   document.getElementById("pdfViewerTitle").textContent = `${d.title} (${d.rev})`;
   document.getElementById("pdfFrame").src = embedSrc;
   document.getElementById("pdfExternalLink").href = d.url.startsWith("data:") ? embedSrc : d.url;
+  const dl = document.getElementById("pdfDownloadLink");
+  if (dl) { dl.style.display = "none"; }
   openModal("pdfViewerModal");
 }
 
@@ -2307,7 +2335,7 @@ function importMasterCableXlsx(input) {
             freshMap[key].outgoings.push({
               id: key + "-O" + (freshMap[key].outgoings.length + 1),
               system: cleanSys, outgoing,
-              pNos: pNos || "-", pSize: cleanCableSize(pSize), eNos: eNos || "-", eSize: cleanCableSize(eSize),
+              ...(() => { const pn = normalizeCablePair(pNos, pSize); const en = normalizeCablePair(eNos, eSize); return { pNos: pn.nos, pSize: pn.size, eNos: en.nos, eSize: en.size }; })(),
               itpDone: prevOut ? Boolean(prevOut.itpDone) : false
             });
           }
@@ -2670,6 +2698,8 @@ const DEFAULT_IR_TEMPLATE_B64 = "JVBERi0xLjcNCiW1tbW1DQoxIDAgb2JqDQo8PC9UeXBlL0N
 const IR_TEMPLATE_KEY = "dj_lv_ir_template_b64_v1";
 let irPanelOrder = [];
 let irSelectedOutIds = new Set();
+let irOutOverrides = {}; // outId -> { circuit: string, rating: string }
+let activeIrPdfBlobUrl = null;
 
 function extractConductorSize(rawCable) {
   const s = String(rawCable || "").trim();
@@ -2714,11 +2744,39 @@ function updateIrTemplateStatus() {
     : "Using built-in YTL IR Form template (F-PR/011-MEP-GEN-007)";
 }
 
+function irAssignDefaultOverrides(forceReset) {
+  const prefix = (document.getElementById("irCircuitPrefix")?.value || "RYB").trim();
+  const defRating = (document.getElementById("irRating")?.value || "63").trim();
+  let seq = 1;
+  irPanelOrder.forEach(pid => {
+    const p = state.panels.find(x => x.id === pid);
+    if (!p) return;
+    (p.outgoings || []).forEach(o => {
+      if (forceReset || !irOutOverrides[o.id]) {
+        irOutOverrides[o.id] = { circuit: prefix + seq, rating: defRating };
+      }
+      seq++;
+    });
+  });
+}
+
+function irApplyDefaultsToAll() {
+  irAssignDefaultOverrides(true);
+  renderIrPanelsList();
+  toast("Applied default Circuit Prefix & Rating to all outgoings");
+}
+
+function irUpdateOverride(outId, field, value) {
+  if (!irOutOverrides[outId]) irOutOverrides[outId] = { circuit: "", rating: "" };
+  irOutOverrides[outId][field] = value;
+}
+
 function openIrFormModal(panelIds) {
   const ids = (panelIds || []).filter(id => state.panels.some(p => p.id === id));
   if (!ids.length) return toast("Select at least 1 panel first");
   irPanelOrder = [...ids];
   irSelectedOutIds = new Set();
+  irOutOverrides = {};
   const panels = irPanelOrder.map(id => state.panels.find(p => p.id === id)).filter(Boolean);
   panels.forEach(p => (p.outgoings || []).forEach(o => irSelectedOutIds.add(o.id)));
 
@@ -2736,6 +2794,7 @@ function openIrFormModal(panelIds) {
   document.getElementById("irMethod").value = "IR & Continuity Test";
   document.getElementById("irPassCriteria").value = "1M\u03A9";
 
+  irAssignDefaultOverrides(true);
   renderIrPanelsList();
   openModal("irFormModal");
 }
@@ -2787,6 +2846,7 @@ function updateIrPageSummary() {
 function renderIrPanelsList() {
   const box = document.getElementById("irPanelsContainer");
   if (!box) return;
+  irAssignDefaultOverrides(false);
   box.innerHTML = irPanelOrder.map((pid, idx) => {
     const p = state.panels.find(x => x.id === pid);
     if (!p) return "";
@@ -2808,15 +2868,21 @@ function renderIrPanelsList() {
           </div>
         </div>
         <div class="ir-out-list">
-          ${outs.length ? outs.map(o => `
-            <label class="ir-out-row">
-              <div style="display:flex;align-items:center;gap:8px;min-width:0;">
+          ${outs.length ? outs.map(o => {
+            const ov = irOutOverrides[o.id] || { circuit: "", rating: "" };
+            return `
+            <div class="ir-out-row">
+              <label style="display:flex;align-items:center;gap:8px;min-width:160px;flex:1;cursor:pointer;">
                 <input type="checkbox" ${irSelectedOutIds.has(o.id)?'checked':''} onchange="irToggleSingleOutgoing('${esc(o.id)}')" />
                 <span style="font-weight:700;color:var(--navy);word-break:break-word;">${esc(o.outgoing)}</span>
+              </label>
+              <div class="ir-inline-fields">
+                <input type="text" class="ir-mini-in" style="width:68px;" value="${esc(ov.circuit)}" placeholder="Ckt No" title="Circuit Number" oninput="irUpdateOverride('${esc(o.id)}','circuit',this.value)" />
+                <input type="text" class="ir-mini-in" style="width:54px;" value="${esc(ov.rating)}" placeholder="Amp" title="Protection Rating (A)" oninput="irUpdateOverride('${esc(o.id)}','rating',this.value)" />
+                <span class="chip" style="flex-shrink:0;min-width:48px;text-align:center;">${esc(extractConductorSize(o.pSize && o.pSize !== '-' ? o.pSize : o.eSize))}</span>
               </div>
-              <span class="chip" style="flex-shrink:0;">${esc(extractConductorSize(o.pSize && o.pSize !== '-' ? o.pSize : o.eSize))}</span>
-            </label>
-          `).join("") : `<div style="font-size:11.5px;color:var(--slate-400);padding:6px;">No outgoings in this panel.</div>`}
+            </div>`;
+          }).join("") : `<div style="font-size:11.5px;color:var(--slate-400);padding:6px;">No outgoings in this panel.</div>`}
         </div>
       </div>
     `;
@@ -2833,7 +2899,7 @@ function wrapPdfTag(text, maxChars) {
     let cut = remaining.lastIndexOf("-", maxChars);
     if (cut < 4) cut = remaining.lastIndexOf(" ", maxChars);
     if (cut < 4) cut = maxChars;
-    else cut = cut + 1; // keep trailing hyphen on line
+    else cut = cut + 1;
     lines.push(remaining.slice(0, cut).trim());
     remaining = remaining.slice(cut).trim();
   }
@@ -2848,26 +2914,37 @@ function b64ToUint8Array(b64) {
   return bytes;
 }
 
-async function generateIrPdf() {
+async function generateIrPdf(mode) {
   if (typeof PDFLib === "undefined") return toast("PDF engine still loading, please retry in 2s");
+  const circPrefix = document.getElementById("irCircuitPrefix").value.trim() || "RYB";
+  const defRating = document.getElementById("irRating").value.trim();
   const rows = [];
+  let fallbackSeq = 1;
   irPanelOrder.forEach(pid => {
     const p = state.panels.find(x => x.id === pid);
     if (!p) return;
     (p.outgoings || []).forEach(o => {
       if (irSelectedOutIds.has(o.id)) {
+        const ov = irOutOverrides[o.id] || {};
         rows.push({
+          circuit: (ov.circuit !== undefined ? ov.circuit : (circPrefix + fallbackSeq)).trim(),
+          rating: (ov.rating !== undefined ? ov.rating : defRating).trim(),
           from: p.name,
           to: o.outgoing,
           size: extractConductorSize(o.pSize && o.pSize !== "-" ? o.pSize : o.eSize)
         });
+        fallbackSeq++;
       }
     });
   });
   if (!rows.length) return toast("Tick at least 1 outgoing to generate the IR form");
 
-  const btn = document.getElementById("btnGenerateIrPdf");
-  if (btn) { btn.disabled = true; btn.textContent = "⏳ Generating PDF..."; }
+  const btnDl = document.getElementById("btnGenerateIrPdf");
+  const btnPv = document.getElementById("btnPreviewIrPdf");
+  if (btnDl) btnDl.disabled = true;
+  if (btnPv) btnPv.disabled = true;
+  if (mode === "preview" && btnPv) btnPv.textContent = "⏳ Building Preview...";
+  if (mode !== "preview" && btnDl) btnDl.textContent = "⏳ Generating PDF...";
 
   try {
     let tplB64 = DEFAULT_IR_TEMPLATE_B64;
@@ -2877,7 +2954,6 @@ async function generateIrPdf() {
     const tplDoc = await PDFDocument.load(b64ToUint8Array(tplB64));
     const outDoc = await PDFDocument.create();
     const fontBold = await outDoc.embedFont(StandardFonts.HelveticaBold);
-    const fontReg = await outDoc.embedFont(StandardFonts.Helvetica);
     const fontSym = await outDoc.embedFont(StandardFonts.Symbol);
     const black = rgb(0.08, 0.09, 0.11);
 
@@ -2889,14 +2965,22 @@ async function generateIrPdf() {
     const instrument = document.getElementById("irInstrument").value.trim();
     const method = document.getElementById("irMethod").value.trim();
     const passCrit = document.getElementById("irPassCriteria").value.trim();
-    const circPrefix = document.getElementById("irCircuitPrefix").value.trim() || "RYB";
     const typePt = document.getElementById("irTypeOfPoint").value.trim();
     const pwrSup = document.getElementById("irPowerSupply").value.trim();
-    const rating = document.getElementById("irRating").value.trim();
     const polarity = document.getElementById("irPolarity").value.trim();
 
+    function safeWinAnsi(text) {
+      return String(text || "").replace(/[^\x20-\x7E\xA0-\xFF]/g, "");
+    }
+
+    function drawSafeText(page, text, x, y, size, font) {
+      const safe = safeWinAnsi(text);
+      if (!safe) return;
+      page.drawText(safe, { x, y, size, font, color: black });
+    }
+
     function drawCentered(page, text, cx, y, size, font) {
-      const safe = String(text || "").replace(/[^\x20-\xFF]/g, "");
+      const safe = safeWinAnsi(text);
       if (!safe) return;
       const w = font.widthOfTextAtSize(safe, size);
       page.drawText(safe, { x: cx - w / 2, y, size, font, color: black });
@@ -2904,16 +2988,21 @@ async function generateIrPdf() {
 
     function drawWithOmega(page, text, x, y, size, font) {
       let curX = x;
-      const parts = String(text || "").split("\u03A9");
+      const parts = String(text || "").split(/[\u03A9\u2126]/);
       parts.forEach((part, idx) => {
-        const safe = part.replace(/[^\x20-\xFF]/g, "");
+        const safe = safeWinAnsi(part);
         if (safe) {
           page.drawText(safe, { x: curX, y, size, font, color: black });
           curX += font.widthOfTextAtSize(safe, size);
         }
         if (idx < parts.length - 1) {
-          page.drawText("W", { x: curX, y, size, font: fontSym, color: black });
-          curX += fontSym.widthOfTextAtSize("W", size);
+          try {
+            page.drawText("\u03A9", { x: curX, y, size, font: fontSym, color: black });
+            curX += fontSym.widthOfTextAtSize("\u03A9", size);
+          } catch (symErr) {
+            page.drawText(" Ohm", { x: curX, y, size, font, color: black });
+            curX += font.widthOfTextAtSize(" Ohm", size);
+          }
         }
       });
     }
@@ -2925,22 +3014,21 @@ async function generateIrPdf() {
 
       // Header fields (exact coordinates from YTL F-PR/011-MEP-GEN-007)
       const hSize = 5.6;
-      if (project) page.drawText(project, { x: 43, y: 500.8, size: hSize, font: fontBold, color: black });
-      if (rfiNo) page.drawText(rfiNo, { x: 319, y: 500.6, size: hSize, font: fontBold, color: black });
-      if (loc) page.drawText(loc, { x: 45, y: 489.7, size: hSize, font: fontBold, color: black });
-      if (area) page.drawText(area, { x: 300, y: 489.7, size: hSize, font: fontBold, color: black });
-      if (trade) page.drawText(trade, { x: 707, y: 489.6, size: hSize, font: fontBold, color: black });
-      if (instrument) page.drawText(instrument, { x: 163, y: 478.5, size: hSize, font: fontBold, color: black });
-      if (method) page.drawText(method, { x: 343, y: 478.5, size: hSize, font: fontBold, color: black });
+      if (project) drawSafeText(page, project, 43, 500.8, hSize, fontBold);
+      if (rfiNo) drawSafeText(page, rfiNo, 319, 500.6, hSize, fontBold);
+      if (loc) drawSafeText(page, loc, 45, 489.7, hSize, fontBold);
+      if (area) drawSafeText(page, area, 300, 489.7, hSize, fontBold);
+      if (trade) drawSafeText(page, trade, 707, 489.6, hSize, fontBold);
+      if (instrument) drawSafeText(page, instrument, 163, 478.5, hSize, fontBold);
+      if (method) drawSafeText(page, method, 343, 478.5, hSize, fontBold);
       if (passCrit) drawWithOmega(page, passCrit, 715, 478.6, hSize, fontBold);
 
       // Up to 10 outgoings per page (exact row step = 21.6 pt)
       const chunk = rows.slice(pgIdx * 10, (pgIdx + 1) * 10);
       chunk.forEach((row, i) => {
         const yBase = 438.1 - (i * 21.6);
-        const circNo = circPrefix + (pgIdx * 10 + i + 1);
 
-        drawCentered(page, circNo, 39.5, yBase, 5.5, fontBold);
+        drawCentered(page, row.circuit, 39.5, yBase, 5.5, fontBold);
 
         // TEST POINT FROM (wrapped up to 3 lines, centered at x=87.2)
         const fromLines = wrapPdfTag(row.from, 16);
@@ -2954,7 +3042,7 @@ async function generateIrPdf() {
 
         drawCentered(page, typePt, 189.2, yBase, 5.5, fontBold);
         drawCentered(page, pwrSup, 236.3, yBase, 5.5, fontBold);
-        drawCentered(page, rating, 288.5, yBase, 5.5, fontBold);
+        drawCentered(page, row.rating, 288.5, yBase, 5.5, fontBold);
         drawCentered(page, row.size, 342.3, yBase, 5.5, fontBold);
         drawCentered(page, polarity, 639.0, yBase, 5.5, fontBold);
       });
@@ -2962,20 +3050,37 @@ async function generateIrPdf() {
 
     const pdfBytes = await outDoc.save();
     const blob = new Blob([pdfBytes], { type: "application/pdf" });
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
+    if (activeIrPdfBlobUrl) URL.revokeObjectURL(activeIrPdfBlobUrl);
+    activeIrPdfBlobUrl = URL.createObjectURL(blob);
+
     const firstPanel = state.panels.find(p => p.id === irPanelOrder[0]);
-    const baseName = [rfiNo || "IR_FORM", irPanelOrder.length === 1 && firstPanel ? firstPanel.name : `${irPanelOrder.length}_PANELS`].join(" - ").replace(/[\\/:*?"<>|]/g, "_");
-    a.download = baseName + ".pdf";
-    a.click();
-    toast(`✅ Generated ${totalPages}-page IR Form PDF (${rows.length} outgoings)!`);
+    const fileName = [rfiNo || "IR_FORM", irPanelOrder.length === 1 && firstPanel ? firstPanel.name : `${irPanelOrder.length}_PANELS`].join(" - ").replace(/[\\/:*?"<>|]/g, "_") + ".pdf";
+
+    if (mode === "preview") {
+      document.getElementById("pdfViewerTitle").textContent = `IR Form Preview (${totalPages} page${totalPages===1?'':'s'} • ${rows.length} outgoings)`;
+      document.getElementById("pdfFrame").src = activeIrPdfBlobUrl;
+      document.getElementById("pdfExternalLink").href = activeIrPdfBlobUrl;
+      const dl = document.getElementById("pdfDownloadLink");
+      if (dl) {
+        dl.href = activeIrPdfBlobUrl;
+        dl.download = fileName;
+        dl.style.display = "inline-flex";
+      }
+      openModal("pdfViewerModal");
+    } else {
+      const a = document.createElement("a");
+      a.href = activeIrPdfBlobUrl;
+      a.download = fileName;
+      a.click();
+      toast(`✅ Downloaded ${totalPages}-page IR Form PDF (${rows.length} outgoings)!`);
+    }
   } catch (e) {
     toast("PDF generation error: " + e.message);
   } finally {
-    if (btn) { btn.disabled = false; btn.textContent = "⬇ Generate IR Form PDF"; }
+    if (btnDl) { btnDl.disabled = false; btnDl.textContent = "⬇ Download PDF"; }
+    if (btnPv) { btnPv.disabled = false; btnPv.textContent = "👁 Preview PDF"; }
   }
 }
-
 function esc(s) {
   return String(s == null ? "" : s).replace(/[&<>"']/g, m => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[m]));
 }
