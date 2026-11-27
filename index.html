@@ -2015,6 +2015,7 @@ function buildOutgoingsResultsHtml(p) {
           <table class="compact-table" style="min-width:760px;">
             <thead>
               <tr>
+                <th style="width:54px;">Order</th>
                 <th style="width:28px;">#</th>
                 <th style="min-width:190px;">Outgoing</th>
                 <th style="width:74px;">Ckt No.</th>
@@ -2028,7 +2029,13 @@ function buildOutgoingsResultsHtml(p) {
             </thead>
             <tbody>
               ${items.map((r, idx) => `
-                <tr class="${r._isNew ? 'bulk-row-new' : ''}">
+                <tr class="${r._isNew ? 'bulk-row-new' : ''}" data-bulk-out="${esc(r.id)}">
+                  <td>
+                    <div class="ir-move-btns">
+                      <button type="button" class="ir-move-btn" ${idx===0?'disabled':''} onclick="bulkMoveRow('${esc(r.id)}',-1)" title="Move row up">▲</button>
+                      <button type="button" class="ir-move-btn" ${idx===items.length-1?'disabled':''} onclick="bulkMoveRow('${esc(r.id)}',1)" title="Move row down">▼</button>
+                    </div>
+                  </td>
                   <td style="color:var(--slate-400);font-weight:700;">${idx + 1}</td>
                   <td><input type="text" class="bulk-in" value="${esc(r.outgoing)}" placeholder="Outgoing tag..." oninput="bulkEditField('${esc(r.id)}','outgoing',this.value)" /></td>
                   <td><input type="text" class="bulk-in bulk-in-md" value="${esc(r.circuitNo)}" placeholder="-" oninput="bulkEditField('${esc(r.id)}','circuitNo',this.value)" /></td>
@@ -2193,6 +2200,29 @@ function bulkRemoveRow(rowId) {
   if (!r._isNew) bulkDeletedIds.push(r.id);
   bulkDraftRows.splice(idx, 1);
   updateOutgoingsResults();
+}
+
+function bulkMoveRow(rowId, dir) {
+  const curIdx = bulkDraftRows.findIndex(x => x.id === rowId);
+  if (curIdx === -1) return;
+  const curSys = bulkDraftRows[curIdx].system || "General";
+  // Find adjacent row in the same system group
+  let targetIdx = curIdx + dir;
+  while (targetIdx >= 0 && targetIdx < bulkDraftRows.length) {
+    if ((bulkDraftRows[targetIdx].system || "General") === curSys) break;
+    targetIdx += dir;
+  }
+  if (targetIdx < 0 || targetIdx >= bulkDraftRows.length) return;
+  const movedId = bulkDraftRows[curIdx].id;
+  const otherId = bulkDraftRows[targetIdx].id;
+  const playAnim = animateFlipSwap("data-bulk-out", movedId, otherId, "ir-moved-flash");
+  const tmp = bulkDraftRows[curIdx];
+  bulkDraftRows[curIdx] = bulkDraftRows[targetIdx];
+  bulkDraftRows[targetIdx] = tmp;
+  bulkDraftRows[curIdx]._dirty = true;
+  bulkDraftRows[targetIdx]._dirty = true;
+  updateOutgoingsResults();
+  playAnim();
 }
 
 function saveBulkEditOutgoings(panelId) {
